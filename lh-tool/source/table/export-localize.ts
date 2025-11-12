@@ -109,8 +109,19 @@ export function exportLocalize(config?: ExportLocalizeConfig): { success: boolea
             // 第二行是字段名，获取语言版本列
             const headerRow = jsonData[1];
             const languageColumns: { index: number; name: string }[] = [];
+            let defaultColumnIndex: number = -1; // 默认值列索引
             
-            // 从第二列之后开始查找语言版本
+            // 从第三列开始查找语言版本（索引2）
+            // 如果第三列（索引2）没有key值，则作为默认值列
+            if (headerRow.length > 2) {
+                const thirdColumnKey = headerRow[2];
+                if (!thirdColumnKey || !thirdColumnKey.toString().trim()) {
+                    defaultColumnIndex = 2;
+                    console.log(`Sheet "${sheetName}" 第三列作为默认值列`);
+                }
+            }
+            
+            // 从第三列之后开始查找语言版本
             for (let i = 2; i < headerRow.length; i++) {
                 const langName = headerRow[i];
                 if (langName && langName.toString().trim()) {
@@ -138,13 +149,23 @@ export function exportLocalize(config?: ExportLocalizeConfig): { success: boolea
                     
                     // 第二列是key (索引1)
                     const key = row[1];
+                    if (!key || !key.toString().trim()) {
+                        continue; // key为空则跳过
+                    }
+                    
+                    const keyStr = key.toString().trim();
+                    
                     // 对应语言版本的内容
-                    const value = row[langCol.index];
-
-                    // 只有key和value都存在时才添加/更新
-                    if (key && key.toString().trim() && value !== undefined && value !== null && value.toString().trim()) {
-                        const keyStr = key.toString().trim();
-                        const valueStr = value.toString().trim();
+                    let value = row[langCol.index];
+                    
+                    // 如果value为空且存在默认值列，使用默认值
+                    if ((value === undefined || value === null || value.toString().trim() === '') && defaultColumnIndex !== -1) {
+                        value = row[defaultColumnIndex];
+                    }
+                    
+                    // 只有key和value都存在时才添加（value不trim，保留原始空格）
+                    if (value !== undefined && value !== null && value.toString() !== '') {
+                        const valueStr = value.toString(); // 不trim，保留原始空格
                         localizeData[keyStr] = valueStr;
                     }
                 }

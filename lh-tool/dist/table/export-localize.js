@@ -38392,6 +38392,14 @@ function exportLocalize(config) {
       }
       const headerRow = jsonData[1];
       const languageColumns = [];
+      let defaultColumnIndex = -1;
+      if (headerRow.length > 2) {
+        const thirdColumnKey = headerRow[2];
+        if (!thirdColumnKey || !thirdColumnKey.toString().trim()) {
+          defaultColumnIndex = 2;
+          console.log(`Sheet "${sheetName}" \u7B2C\u4E09\u5217\u4F5C\u4E3A\u9ED8\u8BA4\u503C\u5217`);
+        }
+      }
       for (let i = 2; i < headerRow.length; i++) {
         const langName = headerRow[i];
         if (langName && langName.toString().trim()) {
@@ -38410,10 +38418,16 @@ function exportLocalize(config) {
         for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
           const row = jsonData[rowIndex];
           const key = row[1];
-          const value = row[langCol.index];
-          if (key && key.toString().trim() && value !== void 0 && value !== null && value.toString().trim()) {
-            const keyStr = key.toString().trim();
-            const valueStr = value.toString().trim();
+          if (!key || !key.toString().trim()) {
+            continue;
+          }
+          const keyStr = key.toString().trim();
+          let value = row[langCol.index];
+          if ((value === void 0 || value === null || value.toString().trim() === "") && defaultColumnIndex !== -1) {
+            value = row[defaultColumnIndex];
+          }
+          if (value !== void 0 && value !== null && value.toString() !== "") {
+            const valueStr = value.toString();
             localizeData[keyStr] = valueStr;
           }
         }
