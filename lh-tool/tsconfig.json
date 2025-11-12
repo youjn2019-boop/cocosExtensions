@@ -4,5 +4,15 @@
         "outDir": "./dist",
         "rootDir": "./source",
         "types": ["node", "@cocos/creator-types/editor"]
-    }
+    },
+    "include": [
+        "source/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "test-data",
+        "tool",
+        "output"
+    ]
 }

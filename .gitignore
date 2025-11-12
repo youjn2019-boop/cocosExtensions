@@ -2,6 +2,8 @@
 # NPM
 #//////////////////////////
 node_modules/
+tablegen/
 
+lh-tool/test-data/
 lh-tool/output/
 lh-tool/tool/config/

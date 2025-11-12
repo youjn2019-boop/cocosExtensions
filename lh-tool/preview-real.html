@@ -120,13 +120,10 @@
                         </div>
                         
                         <div class="form-group">
-                            <label>导出模式</label>
-                            <select v-model="config.exportMode" @change="saveConfig">
-                                <option value="all">全部导出</option>
-                                <option value="code">仅导出代码</option>
-                                <option value="data">仅导出数据</option>
-                                <option value="lang">仅导出多语言</option>
-                            </select>
+                        <label>导出模式</label>
+                        <select v-model="config.exportMode" @change="saveConfig">
+                            <option v-for="mode in config.exportModes" :key="mode" :value="mode">{{ mode }}</option>
+                        </select>
                         </div>
                     </div>
                     
@@ -195,8 +192,9 @@
                             exportDataDir: 'D:\\project\\export',
                             langDir: 'E:\\output\\localize',
                             tempDir: 'E:\\temp',
-                            exportMode: 'all',
+                            exportMode: 'Client',
                             formatEnabled: true,
+                            exportModes: ['Client', 'Battle']
                         }
                     };
                 },

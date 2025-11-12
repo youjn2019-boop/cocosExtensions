@@ -34,8 +34,9 @@ module.exports = Editor.Panel.define({
                         exportDataDir: '',
                         langDir: '',
                         tempDir: '',
-                        exportMode: 'all',
+                        exportMode: 'Client',
                         formatEnabled: false,
+                        exportModes: ['Client', 'Battle']
                     }
                 };
             },
@@ -130,9 +131,46 @@ module.exports = Editor.Panel.define({
                     }
                 },
                 
-                handleTableCopy() {
-                    console.log('打表+复制');
-                    // TODO: 实现打表+复制功能
+                async handleTableCopy() {
+                    try {
+                        const { exportTable } = require(join(extensionRoot, 'dist/table/export-table'));
+                        
+                        const config = (this as any).config;
+                        const exportConfig = {
+                            exeFile: config.exeFile,
+                            dataDir: config.dataDir,
+                            codeDir: config.codeDir,
+                            exportDataDir: config.exportDataDir,
+                            tempDir: config.tempDir,
+                            exportMode: config.exportMode,
+                        };
+                        
+                        console.log('开始打表+复制...', exportConfig);
+                        const result = await exportTable(exportConfig);
+                        
+                        if (result.success) {
+                            console.log('✅ 打表成功!', result.message);
+                            if (result.files) {
+                                result.files.forEach((f: string) => console.log('  -', f));
+                            }
+                            await Editor.Dialog.info('打表成功', {
+                                detail: result.message,
+                                buttons: ['确定']
+                            });
+                        } else {
+                            console.error('❌ 打表失败:', result.message);
+                            await Editor.Dialog.error('打表失败', {
+                                detail: result.message,
+                                buttons: ['确定']
+                            });
+                        }
+                    } catch (error: any) {
+                        console.error('打表异常:', error);
+                        await Editor.Dialog.error('打表异常', {
+                            detail: error.message || '未知错误',
+                            buttons: ['确定']
+                        });
+                    }
                 },
                 
                 handleTableCopyGen() {
