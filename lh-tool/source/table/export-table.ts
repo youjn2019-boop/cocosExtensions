@@ -30,6 +30,8 @@ interface ExportResult {
     files?: string[];
 }
 
+const LinkBreak = '\r\n';
+
 /**
  * 导出表格（异步）
  * @param config 导出配置
@@ -303,16 +305,14 @@ export function genTables(tableNames: string[], outputPath: string): boolean {
     }
 
     try {
-        let names = "\
-";
+        let names = LinkBreak;
         let importStr = "";
         let registerStr = "";
         let getMgrStr = "";
 
         for (let i = 0; i < tableNames.length; i++) {
             const tableName = tableNames[i];
-            names += `        "${ tableName}",\
-`;
+            names += "        \"" + tableName + "\"," + LinkBreak;
             importStr += tableTemplete.importStr.replace(/\{\{name\}\}/g, tableName);
             const tmpStr = tableTemplete.registerStr.replace(/\{\{name\}\}/g, tableName);
             registerStr += tmpStr.replace(/\{\{index\}\}/g, i.toString());

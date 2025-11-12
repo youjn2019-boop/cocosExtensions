@@ -6370,6 +6370,7 @@ export class Tables {
 };
 
 // source/table/export-table.ts
+var LinkBreak = "\r\n";
 async function exportTable(config) {
   try {
     const requiredFields = ["exeFile", "dataDir", "codeDir", "exportDataDir", "tempDir", "exportMode"];
@@ -6559,13 +6560,13 @@ function genTables(tableNames, outputPath) {
     return false;
   }
   try {
-    let names = "";
+    let names = LinkBreak;
     let importStr = "";
     let registerStr = "";
     let getMgrStr = "";
     for (let i = 0; i < tableNames.length; i++) {
       const tableName = tableNames[i];
-      names += `        "${tableName}",`;
+      names += '        "' + tableName + '",' + LinkBreak;
       importStr += tableTemplete.importStr.replace(/\{\{name\}\}/g, tableName);
       const tmpStr = tableTemplete.registerStr.replace(/\{\{name\}\}/g, tableName);
       registerStr += tmpStr.replace(/\{\{index\}\}/g, i.toString());

@@ -142,9 +142,9 @@ export function exportLocalize(config?: ExportLocalizeConfig): { success: boolea
                     const value = row[langCol.index];
 
                     // 只有key和value都存在时才添加/更新
-                    if (key && key.toString().trim()) {
+                    if (key && key.toString().trim() && value !== undefined && value !== null && value.toString().trim()) {
                         const keyStr = key.toString().trim();
-                        const valueStr = value ? value.toString() : '';
+                        const valueStr = value.toString().trim();
                         localizeData[keyStr] = valueStr;
                     }
                 }

@@ -38411,9 +38411,9 @@ function exportLocalize(config) {
           const row = jsonData[rowIndex];
           const key = row[1];
           const value = row[langCol.index];
-          if (key && key.toString().trim()) {
+          if (key && key.toString().trim() && value !== void 0 && value !== null && value.toString().trim()) {
             const keyStr = key.toString().trim();
-            const valueStr = value ? value.toString() : "";
+            const valueStr = value.toString().trim();
             localizeData[keyStr] = valueStr;
           }
         }
