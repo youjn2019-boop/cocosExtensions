@@ -1,0 +1,18 @@
+{
+"Keys": [1,2,3,4,5,6,7,8,9,10,120012000,220012000,230032002],
+"Items": [
+	{"id":1,"condition":"2002","type":"1","replace":"","param1":"500","param2":"","param3":"","param4":""},
+	{"id":2,"condition":"","type":"3","replace":"","param1":"1000","param2":"","param3":"","param4":""},
+	{"id":3,"condition":"16003&2033","type":"3","replace":"","param1":"","param2":"","param3":"","param4":"2401"},
+	{"id":4,"condition":"2052","type":"1","replace":"","param1":"500","param2":"","param3":"","param4":""},
+	{"id":5,"condition":"1026#2034","type":"2","replace":"1","param1":"5000","param2":"","param3":"","param4":""},
+	{"id":6,"condition":"2048","type":"3","replace":"","param1":"","param2":"","param3":"","param4":""},
+	{"id":7,"condition":"2053","type":"3","replace":"","param1":"","param2":"","param3":"","param4":"3131004"},
+	{"id":8,"condition":"2055#2028","type":"1","replace":"","param1":"4500","param2":"","param3":"","param4":""},
+	{"id":9,"condition":"2058","type":"3","replace":"","param1":"","param2":"","param3":"","param4":"4203"},
+	{"id":10,"condition":"2067","type":"1","replace":"","param1":"500","param2":"","param3":"","param4":""},
+	{"id":120012000,"condition":"12005","type":"1","replace":"","param1":"6000","param2":"","param3":"","param4":""},
+	{"id":220012000,"condition":"1","type":"1","replace":"","param1":"4000","param2":"","param3":"","param4":""},
+	{"id":230032002,"condition":"38002","type":"4","replace":"","param1":"150","param2":"","param3":"","param4":""}
+	]
+}
