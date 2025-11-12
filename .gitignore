@@ -3,5 +3,5 @@
 #//////////////////////////
 node_modules/
 
-lh-tool/tool/output
-lh-tool/tool/config
+lh-tool/output/
+lh-tool/tool/config/

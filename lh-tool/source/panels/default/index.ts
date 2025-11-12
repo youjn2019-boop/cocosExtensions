@@ -50,8 +50,12 @@ module.exports = Editor.Panel.define({
                     try {
                         if (existsSync(configPath)) {
                             const loadedConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
-                            Object.assign(this.config, loadedConfig);
+                            Object.assign((this as any).config, loadedConfig);
                             console.log('配置已加载');
+                        } else {
+                            // 配置文件不存在，创建默认配置
+                            console.log('配置文件不存在，创建默认配置');
+                            (this as any).saveConfig();
                         }
                     } catch (error) {
                         console.error('加载配置失败:', error);
@@ -62,8 +66,8 @@ module.exports = Editor.Panel.define({
                     try {
                         const fs = require('fs-extra');
                         fs.ensureDirSync(join(extensionRoot, 'tool/config'));
-                        writeFileSync(configPath, JSON.stringify(this.config, null, 2), 'utf-8');
-                        console.log('配置已保存');
+                        writeFileSync(configPath, JSON.stringify((this as any).config, null, 2), 'utf-8');
+                        console.log('配置已保存到:', configPath);
                     } catch (error) {
                         console.error('保存配置失败:', error);
                     }
@@ -73,16 +77,16 @@ module.exports = Editor.Panel.define({
                 async selectFile(field: string, title: string, filters?: any[]) {
                     const result = await Editor.Dialog.select({ title, type: 'file', filters });
                     if (result.filePaths && result.filePaths.length > 0) {
-                        (this.config as any)[field] = result.filePaths[0];
-                        this.saveConfig();
+                        ((this as any).config as any)[field] = result.filePaths[0];
+                        (this as any).saveConfig();
                     }
                 },
                 
                 async selectDirectory(field: string, title: string) {
                     const result = await Editor.Dialog.select({ title, type: 'directory' });
                     if (result.filePaths && result.filePaths.length > 0) {
-                        (this.config as any)[field] = result.filePaths[0];
-                        this.saveConfig();
+                        ((this as any).config as any)[field] = result.filePaths[0];
+                        (this as any).saveConfig();
                     }
                 },
                 
@@ -91,10 +95,11 @@ module.exports = Editor.Panel.define({
                     try {
                         const { exportLocalize } = require(join(extensionRoot, 'dist/table/export-localize'));
                         
+                        const config = (this as any).config;
                         const exportConfig = {
-                            dataDir: this.config.dataDir,
-                            langDir: this.config.langDir,
-                            formatEnabled: this.config.formatEnabled,
+                            dataDir: config.dataDir,
+                            langDir: config.langDir,
+                            formatEnabled: config.formatEnabled,
                         };
                         
                         console.log('开始导出多语言...', exportConfig);
