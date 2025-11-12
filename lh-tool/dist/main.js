@@ -1,34 +1,108 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.methods = void 0;
-exports.load = load;
-exports.unload = unload;
-// @ts-ignore
-const package_json_1 = __importDefault(require("../package.json"));
-/**
- * @en Registration method for the main process of Extension
- * @zh 为扩展的主进程的注册方法
- */
-exports.methods = {
-    /**
-     * @en A method that can be triggered by message
-     * @zh 通过 message 触发的方法
-     */
-    openPanel() {
-        Editor.Panel.open(package_json_1.default.name);
-    },
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
 };
-/**
- * @en Method Triggered on Extension Startup
- * @zh 扩展启动时触发的方法
- */
-function load() { }
-/**
- * @en Method triggered when uninstalling the extension
- * @zh 卸载扩展时触发的方法
- */
-function unload() { }
-//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsInNvdXJjZVJvb3QiOiIiLCJzb3VyY2VzIjpbIi4uL3NvdXJjZS9tYWluLnRzIl0sIm5hbWVzIjpbXSwibWFwcGluZ3MiOiI7Ozs7OztBQW9CQSxvQkFBeUI7QUFNekIsd0JBQTJCO0FBMUIzQixhQUFhO0FBQ2IsbUVBQTBDO0FBQzFDOzs7R0FHRztBQUNVLFFBQUEsT0FBTyxHQUE0QztJQUM1RDs7O09BR0c7SUFDSCxTQUFTO1FBQ0wsTUFBTSxDQUFDLEtBQUssQ0FBQyxJQUFJLENBQUMsc0JBQVcsQ0FBQyxJQUFJLENBQUMsQ0FBQztJQUN4QyxDQUFDO0NBQ0osQ0FBQztBQUVGOzs7R0FHRztBQUNILFNBQWdCLElBQUksS0FBSSxDQUFDO0FBRXpCOzs7R0FHRztBQUNILFNBQWdCLE1BQU0sS0FBSSxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiLy8gQHRzLWlnbm9yZVxyXG5pbXBvcnQgcGFja2FnZUpTT04gZnJvbSAnLi4vcGFja2FnZS5qc29uJztcclxuLyoqXHJcbiAqIEBlbiBSZWdpc3RyYXRpb24gbWV0aG9kIGZvciB0aGUgbWFpbiBwcm9jZXNzIG9mIEV4dGVuc2lvblxyXG4gKiBAemgg5Li65omp5bGV55qE5Li76L+b56iL55qE5rOo5YaM5pa55rOVXHJcbiAqL1xyXG5leHBvcnQgY29uc3QgbWV0aG9kczogeyBba2V5OiBzdHJpbmddOiAoLi4uYW55OiBhbnkpID0+IGFueSB9ID0ge1xyXG4gICAgLyoqXHJcbiAgICAgKiBAZW4gQSBtZXRob2QgdGhhdCBjYW4gYmUgdHJpZ2dlcmVkIGJ5IG1lc3NhZ2VcclxuICAgICAqIEB6aCDpgJrov4cgbWVzc2FnZSDop6blj5HnmoTmlrnms5VcclxuICAgICAqL1xyXG4gICAgb3BlblBhbmVsKCkge1xyXG4gICAgICAgIEVkaXRvci5QYW5lbC5vcGVuKHBhY2thZ2VKU09OLm5hbWUpO1xyXG4gICAgfSxcclxufTtcclxuXHJcbi8qKlxyXG4gKiBAZW4gTWV0aG9kIFRyaWdnZXJlZCBvbiBFeHRlbnNpb24gU3RhcnR1cFxyXG4gKiBAemgg5omp5bGV5ZCv5Yqo5pe26Kem5Y+R55qE5pa55rOVXHJcbiAqL1xyXG5leHBvcnQgZnVuY3Rpb24gbG9hZCgpIHt9XHJcblxyXG4vKipcclxuICogQGVuIE1ldGhvZCB0cmlnZ2VyZWQgd2hlbiB1bmluc3RhbGxpbmcgdGhlIGV4dGVuc2lvblxyXG4gKiBAemgg5Y246L295omp5bGV5pe26Kem5Y+R55qE5pa55rOVXHJcbiAqL1xyXG5leHBvcnQgZnVuY3Rpb24gdW5sb2FkKCkge31cclxuIl19
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// source/main.ts
+var main_exports = {};
+__export(main_exports, {
+  load: () => load,
+  methods: () => methods,
+  unload: () => unload
+});
+module.exports = __toCommonJS(main_exports);
+
+// package.json
+var package_default = {
+  $schema: "./@types/schema/package/index.json",
+  package_version: 2,
+  name: "lh-tool",
+  version: "1.0.0",
+  author: "Cocos Creator",
+  editor: ">=3.8.7",
+  scripts: {
+    preinstall: "node ./scripts/preinstall.js",
+    build: "node esbuild.config.js",
+    preview: "node preview-server.js"
+  },
+  description: "i18n:lh-tool.description",
+  main: "./dist/main.js",
+  dependencies: {
+    "fs-extra": "^10.0.0",
+    "iconv-lite": "^0.6.3",
+    vue: "^3.1.4",
+    xlsx: "^0.18.5"
+  },
+  devDependencies: {
+    "@cocos/creator-types": "^3.8.7",
+    "@types/fs-extra": "^9.0.5",
+    "@types/node": "^18.17.1",
+    "@types/xlsx": "^0.0.35",
+    esbuild: "^0.19.12",
+    typescript: "^5.8.2"
+  },
+  panels: {
+    default: {
+      title: "i18n:lh-tool.panel_title",
+      type: "dockable",
+      main: "dist/panels/default",
+      size: {
+        "min-width": 400,
+        "min-height": 300,
+        width: 1024,
+        height: 600
+      }
+    }
+  },
+  contributions: {
+    menu: [
+      {
+        path: "i18n:menu.extension",
+        label: "i18n:lh-tool",
+        message: "open-panel"
+      }
+    ],
+    messages: {
+      "open-panel": {
+        methods: [
+          "openPanel"
+        ]
+      }
+    }
+  }
+};
+
+// source/main.ts
+var methods = {
+  /**
+   * @en A method that can be triggered by message
+   * @zh 通过 message 触发的方法
+   */
+  openPanel() {
+    Editor.Panel.open(package_default.name);
+  }
+};
+function load() {
+}
+function unload() {
+}
+// Annotate the CommonJS export names for ESM import in node:
+0 && (module.exports = {
+  load,
+  methods,
+  unload
+});

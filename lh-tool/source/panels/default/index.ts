@@ -153,6 +153,11 @@ module.exports = Editor.Panel.define({
                             if (result.files) {
                                 result.files.forEach((f: string) => console.log('  -', f));
                             }
+                            
+                            // 刷新 Cocos Creator 资源
+                            await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                            console.log('✅ 已通知 Cocos Creator 刷新资源');
+                            
                             await Editor.Dialog.info('打表成功', {
                                 detail: result.message,
                                 buttons: ['确定']
@@ -173,9 +178,85 @@ module.exports = Editor.Panel.define({
                     }
                 },
                 
-                handleTableCopyGen() {
-                    console.log('打表+复制+生成tableMgr');
-                    // TODO: 实现打表+复制+生成tableMgr功能
+                async handleTableCopyGen() {
+                    try {
+                        const { exportTable, getModeTableNames, genTables } = require(join(extensionRoot, 'dist/table/export-table'));
+                        
+                        const config = (this as any).config;
+                        const exportConfig = {
+                            exeFile: config.exeFile,
+                            dataDir: config.dataDir,
+                            codeDir: config.codeDir,
+                            exportDataDir: config.exportDataDir,
+                            tempDir: config.tempDir,
+                            exportMode: config.exportMode,
+                        };
+                        
+                        console.log('开始打表+复制+生成tableMgr...', exportConfig);
+                        
+                        // 1. 执行打表和复制
+                        const result = await exportTable(exportConfig);
+                        
+                        if (!result.success) {
+                            console.error('❌ 打表失败:', result.message);
+                            await Editor.Dialog.error('打表失败', {
+                                detail: result.message,
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        console.log('✅ 打表成功!', result.message);
+                        
+                        // 2. 获取表名列表
+                        const tableNames = getModeTableNames(config.dataDir, config.exportMode);
+                        
+                        if (!tableNames || tableNames.length === 0) {
+                            console.warn('⚠️ 未找到表格，跳过生成 Tables.ts');
+                            await Editor.Dialog.info('打表成功', {
+                                detail: result.message + '\
+\
+未找到表格，跳过生成 Tables.ts',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        // 3. 生成 Tables.ts 到 codeDir 的上级目录
+                        const path = require('path');
+                        const outputPath = path.join(config.codeDir, '..', 'Tables.ts');
+                        const genSuccess = genTables(tableNames, outputPath);
+                        
+                        if (genSuccess) {
+                            const filesCount = result.files?.length || 0;
+                            const message = '打表成功，共复制 ' + filesCount + ' 个文件\
+已生成 Tables.ts (包含 ' + tableNames.length + ' 个表格管理器)';
+                            console.log('✅', message);
+                            
+                            // 刷新 Cocos Creator 资源
+                            await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                            console.log('✅ 已通知 Cocos Creator 刷新资源');
+                            
+                            await Editor.Dialog.info('打表成功', {
+                                detail: message,
+                                buttons: ['确定']
+                            });
+                        } else {
+                            await Editor.Dialog.warn('部分成功', {
+                                detail: result.message + '\
+\
+Tables.ts 生成失败',
+                                buttons: ['确定']
+                            });
+                        }
+                        
+                    } catch (error: any) {
+                        console.error('打表异常:', error);
+                        await Editor.Dialog.error('打表异常', {
+                            detail: error.message || '未知错误',
+                            buttons: ['确定']
+                        });
+                    }
                 },
             }
         });

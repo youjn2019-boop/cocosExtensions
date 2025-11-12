@@ -3,21 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LH Tool 面板预览（Vue 版本）</title>
-    <style id="panel-style">
+    <title>LH Tool 面板预览（Dist 打包版本）</title>
+    <style id="base-style">
         body {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
-            background: #1e1e1e;
-        }
-        #app {
-            height: 100vh;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        #app.loaded {
-            opacity: 1;
         }
         #loading {
             position: fixed;
@@ -26,11 +17,38 @@
             transform: translate(-50%, -50%);
             color: #999;
             font-size: 14px;
+            z-index: 1000;
+        }
+        .info-banner {
+            background: #2d5016;
+            color: #a9dc76;
+            padding: 8px 16px;
+            font-size: 12px;
+            border-bottom: 1px solid #3a6b1f;
+        }
+        .bundle-info {
+            background: #1a1a1a;
+            color: #999;
+            padding: 12px 16px;
+            font-size: 11px;
+            border-bottom: 1px solid #333;
+            font-family: 'Consolas', monospace;
+        }
+        .bundle-info div {
+            margin: 4px 0;
+        }
+        .bundle-info .label {
+            color: #666;
+            display: inline-block;
+            width: 150px;
+        }
+        .bundle-info .value {
+            color: #a9dc76;
         }
     </style>
+    <style id="panel-style"></style>
     <!-- 尝试多个 Vue 3 CDN 源 -->
     <script>
-        // 备选 CDN 列表
         const vueCDNs = [
             'https://cdn.jsdelivr.net/npm/vue@3.3.4/dist/vue.global.prod.js',
             'https://unpkg.com/vue@3.3.4/dist/vue.global.prod.js',
@@ -61,126 +79,53 @@
 </head>
 <body>
     <div id="loading">加载中...</div>
-    <div id="app">
-        <div class="container">
-            <div class="tab-header">
-                <div class="tab-button" :class="{active: activeTab === 'table'}" @click="activeTab = 'table'">表格</div>
-                <div class="tab-button" :class="{active: activeTab === 'protocol'}" @click="activeTab = 'protocol'">协议</div>
-            </div>
-            
-            <div class="tab-content">
-                <div class="tab-panel" :class="{active: activeTab === 'table'}" v-show="activeTab === 'table'">
-                    <div class="tab-panel-content">
-                        <div class="form-group">
-                            <label>选择打表工具</label>
-                            <div class="input-group">
-                                <input type="text" v-model="config.exeFile" readonly placeholder="请选择 .exe 文件">
-                                <button @click="selectFile('exeFile', '选择打表工具')">浏览</button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>表格数据目录</label>
-                            <div class="input-group">
-                                <input type="text" v-model="config.dataDir" readonly placeholder="请选择目录">
-                                <button @click="selectDirectory('dataDir', '选择表格数据目录')">浏览</button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>导出代码目录</label>
-                            <div class="input-group">
-                                <input type="text" v-model="config.codeDir" readonly placeholder="请选择目录">
-                                <button @click="selectDirectory('codeDir', '选择导出代码目录')">浏览</button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>导出数据目录</label>
-                            <div class="input-group">
-                                <input type="text" v-model="config.exportDataDir" readonly placeholder="请选择目录">
-                                <button @click="selectDirectory('exportDataDir', '选择导出数据目录')">浏览</button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>导出多语言目录</label>
-                            <div class="input-group">
-                                <input type="text" v-model="config.langDir" readonly placeholder="请选择目录">
-                                <button @click="selectDirectory('langDir', '选择导出多语言目录')">浏览</button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>导出临时目录</label>
-                            <div class="input-group">
-                                <input type="text" v-model="config.tempDir" readonly placeholder="请选择目录">
-                                <button @click="selectDirectory('tempDir', '选择导出临时目录')">浏览</button>
-                            </div>
-                        </div>
-                        
-                        <div class="form-group">
-                        <label>导出模式</label>
-                        <select v-model="config.exportMode" @change="saveConfig">
-                            <option v-for="mode in config.exportModes" :key="mode" :value="mode">{{ mode }}</option>
-                        </select>
-                        </div>
-                    </div>
-                    
-                    <div class="action-bar">
-                        <div class="action-group">
-                            <button @click="exportLocalize" class="action-button">导出多语言</button>
-                            <label class="checkbox-label">
-                                <input type="checkbox" v-model="config.formatEnabled" @change="saveConfig">
-                                <span>格式化</span>
-                            </label>
-                        </div>
-                        <button @click="handleTableCopy" class="action-button primary">打表+复制</button>
-                        <button @click="handleTableCopyGen" class="action-button primary">打表+复制+生成tableMgr</button>
-                    </div>
-                </div>
-                
-                <div class="tab-panel" :class="{active: activeTab === 'protocol'}" v-show="activeTab === 'protocol'">
-                    <div class="form-group">
-                        <label>协议配置</label>
-                        <p>协议相关内容</p>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="info-banner">
+        ✅ 预览模式：使用 static 模板文件（与 dist 打包代码中使用的相同）
     </div>
+    <div class="bundle-info">
+        <div><span class="label">HTML 模板:</span> <span class="value">static/template/default/index.html</span></div>
+        <div><span class="label">CSS 样式:</span> <span class="value">static/style/default/index.css</span></div>
+        <div><span class="label">打包代码:</span> <span class="value">dist/panels/default/index.js (1.9 MB - 含 Vue + fs-extra)</span></div>
+        <div><span class="label">说明:</span> <span class="value">打包后的代码会在运行时读取 static 文件，此预览使用相同的文件</span></div>
+    </div>
+    <div id="app-container"></div>
 
     <script>
-        // 等待 Vue 和 CSS 加载
+        // 动态加载 HTML 和 CSS
+        Promise.all([
+            fetch('./static/template/default/index.html').then(r => r.text()),
+            fetch('./static/style/default/index.css').then(r => r.text())
+        ]).then(([html, css]) => {
+            // 加载 CSS
+            document.getElementById('panel-style').textContent = css;
+            console.log('✅ CSS 加载完成');
+            
+            // 加载 HTML
+            document.getElementById('app-container').innerHTML = html;
+            console.log('✅ HTML 加载完成');
+            
+            // 等待 Vue 加载后初始化
+            initApp();
+        }).catch(err => {
+            console.error('❌ 加载失败:', err);
+            document.getElementById('loading').textContent = '加载失败: ' + err.message;
+        });
+
+        // 等待 Vue 加载
         function initApp() {
             if (typeof Vue === 'undefined') {
                 setTimeout(initApp, 100);
                 return;
             }
             
-            const { createApp } = Vue;
-
-            // 先加载 CSS，再初始化 Vue
-            fetch('./static/style/default/index.css')
-                .then(r => r.text())
-                .then(css => {
-                    document.getElementById('panel-style').textContent += css;
-                    console.log('✅ CSS 加载完成');
-                    
-                    // CSS 加载完成后再创建 Vue 应用
-                    createVueApp();
-                })
-                .catch(err => {
-                    console.warn('CSS 加载失败:', err);
-                    // 即使 CSS 加载失败也创建 Vue 应用
-                    createVueApp();
-                });
+            console.log('✅ Vue 加载完成，开始创建应用');
+            createVueApp();
         }
         
         function createVueApp() {
             const { createApp } = Vue;
             
-            // 创建 Vue 应用
+            // 创建 Vue 应用（模拟 dist 中的代码）
             const app = createApp({
                 data() {
                     return {
@@ -201,14 +146,12 @@
                 
                 methods: {
                     async selectFile(field, title) {
-                        alert(`选择文件: ${title}
-(实际会打开文件选择对话框)`);
+                        alert('选择文件: ' + title + '\\n(实际会打开文件选择对话框)');
                         console.log('selectFile:', field, title);
                     },
                     
                     async selectDirectory(field, title) {
-                        alert(`选择目录: ${title}
-(实际会打开目录选择对话框)`);
+                        alert('选择目录: ' + title + '\\n(实际会打开目录选择对话框)');
                         console.log('selectDirectory:', field, title);
                     },
                     
@@ -218,42 +161,32 @@
                     
                     async exportLocalize() {
                         console.log('导出多语言');
-                        const msg = `导出多语言
-
-配置:
-数据目录: ${this.config.dataDir}
-导出目录: ${this.config.langDir}
-格式化: ${this.config.formatEnabled ? '是' : '否'}`;
-                        alert(msg);
+                        alert('导出多语言\\n\\n配置:\\n数据目录: ' + this.config.dataDir + '\\n导出目录: ' + this.config.langDir + '\\n格式化: ' + (this.config.formatEnabled ? '是' : '否') + '\\n\\n💡 在真实环境中，此功能会调用:\\ndist/table/export-localize.js\\n(已包含 xlsx 等依赖，无需 node_modules)');
                     },
                     
                     handleTableCopy() {
                         console.log('打表+复制');
-                        alert('打表+复制');
+                        alert('打表+复制\\n\\n💡 在真实环境中，此功能会调用:\\ndist/table/export-table.js\\n(已包含 iconv-lite、fs-extra 等依赖)');
                     },
                     
                     handleTableCopyGen() {
                         console.log('打表+复制+生成tableMgr');
-                        alert('打表+复制+生成tableMgr');
+                        alert('打表+复制+生成tableMgr\\n\\n💡 在真实环境中，会调用打包后的模块\\n所有依赖已内联到 dist 中');
                     }
                 }
             });
             
-            // 挂载应用
+            // 挂载应用到 #app
             app.mount('#app');
             
-            // 显示应用，隐藏加载提示
+            // 隐藏加载提示
             setTimeout(() => {
-                document.getElementById('app').classList.add('loaded');
                 const loading = document.getElementById('loading');
                 if (loading) loading.style.display = 'none';
             }, 100);
             
-            console.log('✅ Vue 应用已挂载');
+            console.log('✅ Vue 应用已挂载到 #app');
         }
-        
-        // 启动应用初始化
-        initApp();
     </script>
 </body>
 </html>
