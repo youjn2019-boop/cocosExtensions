@@ -62,6 +62,38 @@ tableFiles.forEach(file => {
     }).catch(() => process.exit(1));
 });
 
+// 构建 proto 模块
+esbuild.build({
+    entryPoints: ['source/proto/proto-generator.ts'],
+    bundle: true,
+    outfile: 'dist/proto/proto-generator.js',
+    platform: 'node',
+    format: 'cjs',
+    external: [
+        'electron',
+        'original-fs'
+    ],
+    sourcemap: false,
+    minify: false,
+    target: 'node16',
+}).catch(() => process.exit(1));
+
+// 构建 copySpine 模块
+esbuild.build({
+    entryPoints: ['source/copySpine/copy-spine.ts'],
+    bundle: true,
+    outfile: 'dist/copySpine/copy-spine.js',
+    platform: 'node',
+    format: 'cjs',
+    external: [
+        'electron',
+        'original-fs'
+    ],
+    sourcemap: false,
+    minify: false,
+    target: 'node16',
+}).catch(() => process.exit(1));
+
 // 复制 package.json（主进程需要）
 setTimeout(() => {
     if (!existsSync('dist')) {

@@ -56617,7 +56617,17 @@ module.exports = Editor.Panel.define({
             tempDir: "",
             exportMode: "Client",
             formatEnabled: false,
-            exportModes: ["Client", "Battle"]
+            exportModes: ["Client", "Battle"],
+            // 协议配置
+            protoInputPath: "",
+            protoOutputDir: "",
+            protoDtsFileName: "proto",
+            protoJsFileName: "proto",
+            // 战斗表现配置
+            heroSourceDir: "",
+            heroTargetDir: "",
+            skillSourceDir: "",
+            skillTargetDir: ""
           }
         };
       },
@@ -56631,6 +56641,13 @@ module.exports = Editor.Panel.define({
             if ((0, import_fs_extra.existsSync)(configPath)) {
               const loadedConfig = JSON.parse((0, import_fs_extra.readFileSync)(configPath, "utf-8"));
               Object.assign(this.config, loadedConfig);
+              const config = this.config;
+              if (config.protoDtsFileName && config.protoDtsFileName.endsWith(".d.ts")) {
+                config.protoDtsFileName = config.protoDtsFileName.replace(/\.d\.ts$/, "");
+              }
+              if (config.protoJsFileName && config.protoJsFileName.endsWith(".js")) {
+                config.protoJsFileName = config.protoJsFileName.replace(/\.js$/, "");
+              }
               console.log("\u914D\u7F6E\u5DF2\u52A0\u8F7D");
             } else {
               console.log("\u914D\u7F6E\u6587\u4EF6\u4E0D\u5B58\u5728\uFF0C\u521B\u5EFA\u9ED8\u8BA4\u914D\u7F6E");
@@ -56741,6 +56758,112 @@ module.exports = Editor.Panel.define({
             });
           }
         },
+        async copyHeroModel() {
+          try {
+            const config = this.config;
+            if (!config.heroSourceDir) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55",
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            if (!config.heroTargetDir) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55",
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            console.log("\u5F00\u59CB\u590D\u5236\u82F1\u96C4\u6A21\u578B...");
+            console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
+            console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
+            const fs = require("fs");
+            const path = require("path");
+            if (fs.existsSync(config.heroTargetDir)) {
+              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+              const files = fs.readdirSync(config.heroTargetDir);
+              for (const file of files) {
+                if (!file.endsWith(".meta")) {
+                  const filePath = path.join(config.heroTargetDir, file);
+                  if (fs.statSync(filePath).isFile()) {
+                    fs.unlinkSync(filePath);
+                    console.log("\u5220\u9664:", file);
+                  }
+                }
+              }
+            }
+            const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
+            const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+            console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210!");
+            await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+            console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+            await Editor.Dialog.info("\u590D\u5236\u6210\u529F", {
+              detail: `\u82F1\u96C4\u6A21\u578B\u5DF2\u6210\u529F\u590D\u5236
+\u5171\u590D\u5236 ${(result == null ? void 0 : result.fileCount) || 0} \u4E2A\u6587\u4EF6`,
+              buttons: ["\u786E\u5B9A"]
+            });
+          } catch (error) {
+            console.error("\u590D\u5236\u82F1\u96C4\u6A21\u578B\u5F02\u5E38:", error);
+            await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
+              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+              buttons: ["\u786E\u5B9A"]
+            });
+          }
+        },
+        async copySkillEffect() {
+          try {
+            const config = this.config;
+            if (!config.skillSourceDir) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55",
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            if (!config.skillTargetDir) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55",
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            console.log("\u5F00\u59CB\u590D\u5236\u6280\u80FD\u7279\u6548...");
+            console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
+            console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
+            const fs = require("fs");
+            const path = require("path");
+            if (fs.existsSync(config.skillTargetDir)) {
+              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+              const files = fs.readdirSync(config.skillTargetDir);
+              for (const file of files) {
+                if (!file.endsWith(".meta")) {
+                  const filePath = path.join(config.skillTargetDir, file);
+                  if (fs.statSync(filePath).isFile()) {
+                    fs.unlinkSync(filePath);
+                    console.log("\u5220\u9664:", file);
+                  }
+                }
+              }
+            }
+            const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
+            const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+            console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");
+            await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+            console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+            await Editor.Dialog.info("\u590D\u5236\u6210\u529F", {
+              detail: `\u6280\u80FD\u7279\u6548\u5DF2\u6210\u529F\u590D\u5236
+\u5171\u590D\u5236 ${(result == null ? void 0 : result.fileCount) || 0} \u4E2A\u6587\u4EF6`,
+              buttons: ["\u786E\u5B9A"]
+            });
+          } catch (error) {
+            console.error("\u590D\u5236\u6280\u80FD\u7279\u6548\u5F02\u5E38:", error);
+            await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
+              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+              buttons: ["\u786E\u5B9A"]
+            });
+          }
+        },
         async handleTableCopyGen() {
           var _a;
           try {
@@ -56796,6 +56919,49 @@ module.exports = Editor.Panel.define({
           } catch (error) {
             console.error("\u6253\u8868\u5F02\u5E38:", error);
             await Editor.Dialog.error("\u6253\u8868\u5F02\u5E38", {
+              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+              buttons: ["\u786E\u5B9A"]
+            });
+          }
+        },
+        async generateProto() {
+          try {
+            const { ProtoGenerator } = require((0, import_path.join)(extensionRoot, "dist/proto/proto-generator"));
+            const config = this.config;
+            if (!config.protoInputPath) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u9009\u62E9\u6E90 JSON \u6587\u4EF6\u8DEF\u5F84",
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            if (!config.protoOutputDir) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u9009\u62E9\u8F93\u51FA\u76EE\u5F55\u8DEF\u5F84",
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            console.log("\u5F00\u59CB\u751F\u6210\u534F\u8BAE\u6587\u4EF6...");
+            console.log("\u8F93\u5165\u6587\u4EF6:", config.protoInputPath);
+            console.log("\u8F93\u51FA\u76EE\u5F55:", config.protoOutputDir);
+            console.log("TypeScript \u6587\u4EF6\u540D:", config.protoDtsFileName);
+            console.log("JavaScript \u6587\u4EF6\u540D:", config.protoJsFileName);
+            const generator = new ProtoGenerator();
+            generator.generate(
+              config.protoInputPath,
+              config.protoOutputDir,
+              (config.protoDtsFileName || "proto") + ".d.ts",
+              (config.protoJsFileName || "proto") + ".js"
+            );
+            console.log("\u2705 \u534F\u8BAE\u6587\u4EF6\u751F\u6210\u6210\u529F!");
+            await Editor.Dialog.info("\u751F\u6210\u6210\u529F", {
+              detail: "\u534F\u8BAE\u6587\u4EF6\u5DF2\u6210\u529F\u751F\u6210\u5230:" + config.protoOutputDir,
+              buttons: ["\u786E\u5B9A"]
+            });
+          } catch (error) {
+            console.error("\u751F\u6210\u534F\u8BAE\u6587\u4EF6\u5F02\u5E38:", error);
+            await Editor.Dialog.error("\u751F\u6210\u5931\u8D25", {
               detail: error.message || "\u672A\u77E5\u9519\u8BEF",
               buttons: ["\u786E\u5B9A"]
             });

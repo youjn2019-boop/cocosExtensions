@@ -36,7 +36,17 @@ module.exports = Editor.Panel.define({
                         tempDir: '',
                         exportMode: 'Client',
                         formatEnabled: false,
-                        exportModes: ['Client', 'Battle']
+                        exportModes: ['Client', 'Battle'],
+                        // 协议配置
+                        protoInputPath: '',
+                        protoOutputDir: '',
+                        protoDtsFileName: 'proto',
+                        protoJsFileName: 'proto',
+                        // 战斗表现配置
+                        heroSourceDir: '',
+                        heroTargetDir: '',
+                        skillSourceDir: '',
+                        skillTargetDir: '',
                     }
                 };
             },
@@ -52,6 +62,16 @@ module.exports = Editor.Panel.define({
                         if (existsSync(configPath)) {
                             const loadedConfig = JSON.parse(readFileSync(configPath, 'utf-8'));
                             Object.assign((this as any).config, loadedConfig);
+                            
+                            // 处理协议文件名后缀（去除后缀）
+                            const config = (this as any).config;
+                            if (config.protoDtsFileName && config.protoDtsFileName.endsWith('.d.ts')) {
+                                config.protoDtsFileName = config.protoDtsFileName.replace(/\.d\.ts$/, '');
+                            }
+                            if (config.protoJsFileName && config.protoJsFileName.endsWith('.js')) {
+                                config.protoJsFileName = config.protoJsFileName.replace(/\.js$/, '');
+                            }
+                            
                             console.log('配置已加载');
                         } else {
                             // 配置文件不存在，创建默认配置
@@ -178,6 +198,142 @@ module.exports = Editor.Panel.define({
                     }
                 },
                 
+                async copyHeroModel() {
+                    try {
+                        const config = (this as any).config;
+                        
+                        // 验证必填字段
+                        if (!config.heroSourceDir) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请选择英雄模型资源目录',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        if (!config.heroTargetDir) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请选择英雄模型目标目录',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        console.log('开始复制英雄模型...');
+                        console.log('资源目录:', config.heroSourceDir);
+                        console.log('目标目录:', config.heroTargetDir);
+                        
+                        // 清理目标目录（保留.meta文件）
+                        const fs = require('fs');
+                        const path = require('path');
+                        
+                        if (fs.existsSync(config.heroTargetDir)) {
+                            console.log('清理目标目录中的非meta文件...');
+                            const files = fs.readdirSync(config.heroTargetDir);
+                            for (const file of files) {
+                                if (!file.endsWith('.meta')) {
+                                    const filePath = path.join(config.heroTargetDir, file);
+                                    if (fs.statSync(filePath).isFile()) {
+                                        fs.unlinkSync(filePath);
+                                        console.log('删除:', file);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 执行复制逻辑
+                        const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
+                        const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+                        
+                        console.log('✅ 英雄模型复制完成!');
+                        
+                        // 刷新 Cocos Creator 资源
+                        await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                        console.log('✅ 已通知 Cocos Creator 刷新资源');
+                        
+                        await Editor.Dialog.info('复制成功', {
+                            detail: `英雄模型已成功复制
+共复制 ${result?.fileCount || 0} 个文件`,
+                            buttons: ['确定']
+                        });
+                        
+                    } catch (error: any) {
+                        console.error('复制英雄模型异常:', error);
+                        await Editor.Dialog.error('复制失败', {
+                            detail: error.message || '未知错误',
+                            buttons: ['确定']
+                        });
+                    }
+                },
+                
+                async copySkillEffect() {
+                    try {
+                        const config = (this as any).config;
+                        
+                        // 验证必填字段
+                        if (!config.skillSourceDir) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请选择技能特效资源目录',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        if (!config.skillTargetDir) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请选择技能特效目标目录',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        console.log('开始复制技能特效...');
+                        console.log('资源目录:', config.skillSourceDir);
+                        console.log('目标目录:', config.skillTargetDir);
+                        
+                        // 清理目标目录（保留.meta文件）
+                        const fs = require('fs');
+                        const path = require('path');
+                        
+                        if (fs.existsSync(config.skillTargetDir)) {
+                            console.log('清理目标目录中的非meta文件...');
+                            const files = fs.readdirSync(config.skillTargetDir);
+                            for (const file of files) {
+                                if (!file.endsWith('.meta')) {
+                                    const filePath = path.join(config.skillTargetDir, file);
+                                    if (fs.statSync(filePath).isFile()) {
+                                        fs.unlinkSync(filePath);
+                                        console.log('删除:', file);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 执行复制逻辑
+                        const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
+                        const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+                        
+                        console.log('✅ 技能特效复制完成!');
+                        
+                        // 刷新 Cocos Creator 资源
+                        await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                        console.log('✅ 已通知 Cocos Creator 刷新资源');
+                        
+                        await Editor.Dialog.info('复制成功', {
+                            detail: `技能特效已成功复制
+共复制 ${result?.fileCount || 0} 个文件`,
+                            buttons: ['确定']
+                        });
+                        
+                    } catch (error: any) {
+                        console.error('复制技能特效异常:', error);
+                        await Editor.Dialog.error('复制失败', {
+                            detail: error.message || '未知错误',
+                            buttons: ['确定']
+                        });
+                    }
+                },
+                
                 async handleTableCopyGen() {
                     try {
                         const { exportTable, getModeTableNames, genTables } = require(join(extensionRoot, 'dist/table/export-table'));
@@ -253,6 +409,61 @@ Tables.ts 生成失败',
                     } catch (error: any) {
                         console.error('打表异常:', error);
                         await Editor.Dialog.error('打表异常', {
+                            detail: error.message || '未知错误',
+                            buttons: ['确定']
+                        });
+                    }
+                },
+                
+                async generateProto() {
+                    try {
+                        const { ProtoGenerator } = require(join(extensionRoot, 'dist/proto/proto-generator'));
+                        
+                        const config = (this as any).config;
+                        
+                        // 验证必填字段
+                        if (!config.protoInputPath) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请选择源 JSON 文件路径',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        if (!config.protoOutputDir) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请选择输出目录路径',
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        console.log('开始生成协议文件...');
+                        console.log('输入文件:', config.protoInputPath);
+                        console.log('输出目录:', config.protoOutputDir);
+                        console.log('TypeScript 文件名:', config.protoDtsFileName);
+                        console.log('JavaScript 文件名:', config.protoJsFileName);
+                        
+                        const generator = new ProtoGenerator();
+                        generator.generate(
+                            config.protoInputPath,
+                            config.protoOutputDir,
+                            (config.protoDtsFileName || 'proto') + '.d.ts',
+                            (config.protoJsFileName || 'proto') + '.js'
+                        );
+                        
+                        console.log('✅ 协议文件生成成功!');
+                        
+                        await Editor.Dialog.info('生成成功', {
+                            detail: '协议文件已成功生成到:\
+\
+' + config.protoOutputDir,
+                            buttons: ['确定']
+                        });
+                        
+                    } catch (error: any) {
+                        console.error('生成协议文件异常:', error);
+                        await Editor.Dialog.error('生成失败', {
                             detail: error.message || '未知错误',
                             buttons: ['确定']
                         });
