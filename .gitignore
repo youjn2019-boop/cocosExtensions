@@ -2,3 +2,6 @@
 # NPM
 #//////////////////////////
 node_modules/
+
+lh-tool/tool/output
+lh-tool/tool/config/config.json

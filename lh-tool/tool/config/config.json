@@ -6,5 +6,5 @@
   "langDir": "E:\\cocos\\LhDemo\\extensions\\lh-tool\\output\\localize",
   "tempDir": "",
   "exportMode": "all",
-  "formatEnabled": false
+  "formatEnabled": true
 }
