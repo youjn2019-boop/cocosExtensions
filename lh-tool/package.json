@@ -1,0 +1,55 @@
+{
+    "$schema": "./@types/schema/package/index.json",
+    "package_version": 2,
+    "name": "lh-tool",
+    "version": "1.0.0",
+    "author": "Cocos Creator",
+    "editor": ">=3.8.7",
+    "scripts": {
+        "preinstall": "node ./scripts/preinstall.js",
+        "build": "npx tsc"
+    },
+    "description": "i18n:lh-tool.description",
+    "main": "./dist/main.js",
+    "dependencies": {
+        "fs-extra": "^10.0.0",
+        "vue": "^3.1.4",
+        "xlsx": "^0.18.5"
+    },
+    "devDependencies": {
+        "@cocos/creator-types": "^3.8.7",
+        "@types/fs-extra": "^9.0.5",
+        "@types/node": "^18.17.1",
+        "@types/xlsx": "^0.0.35",
+        "typescript": "^5.8.2"
+    },
+    "panels": {
+        "default": {
+            "title": "i18n:lh-tool.panel_title",
+            "type": "dockable",
+            "main": "dist/panels/default",
+            "size": {
+                "min-width": 400,
+                "min-height": 300,
+                "width": 1024,
+                "height": 600
+            }
+        }
+    },
+    "contributions": {
+        "menu": [
+            {
+                "path": "i18n:menu.extension",
+                "label": "i18n:lh-tool",
+                "message": "open-panel"
+            }
+        ],
+        "messages": {
+            "open-panel": {
+                "methods": [
+                    "openPanel"
+                ]
+            }
+        }
+    }
+}
