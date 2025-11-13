@@ -99,7 +99,7 @@ async function checkAndCopyResources(skelFilePath: string, targetPath: string): 
             await copyFile(atlasFilePath, targetAtlasPath);
             await copyFile(pngFilePath, targetPngPath);
 
-            console.log(`成功复制资源: ${baseName}`);
+            // console.log(`成功复制资源: ${baseName}`);
             return true;
         } else {
             console.log(`资源不完整，跳过: ${baseName}`);

@@ -77,7 +77,6 @@ async function checkAndCopyResources(skelFilePath, targetPath) {
       await copyFile(skelFilePath, targetSkelPath);
       await copyFile(atlasFilePath, targetAtlasPath);
       await copyFile(pngFilePath, targetPngPath);
-      console.log(`\u6210\u529F\u590D\u5236\u8D44\u6E90: ${baseName}`);
       return true;
     } else {
       console.log(`\u8D44\u6E90\u4E0D\u5B8C\u6574\uFF0C\u8DF3\u8FC7: ${baseName}`);
