@@ -56669,16 +56669,40 @@ module.exports = Editor.Panel.define({
         },
         // ========== 文件/目录选择 ==========
         async selectFile(field, title, filters) {
-          const result = await Editor.Dialog.select({ title, type: "file", filters });
+          const config = this.config;
+          const currentPath = config[field];
+          const options = { title, type: "file", filters };
+          if (currentPath) {
+            const path = require("path");
+            const fs = require("fs");
+            if (fs.existsSync(currentPath)) {
+              options.path = currentPath;
+            } else {
+              const dir = path.dirname(currentPath);
+              if (fs.existsSync(dir)) {
+                options.path = dir;
+              }
+            }
+          }
+          const result = await Editor.Dialog.select(options);
           if (result.filePaths && result.filePaths.length > 0) {
-            this.config[field] = result.filePaths[0];
+            config[field] = result.filePaths[0];
             this.saveConfig();
           }
         },
         async selectDirectory(field, title) {
-          const result = await Editor.Dialog.select({ title, type: "directory" });
+          const config = this.config;
+          const currentPath = config[field];
+          const options = { title, type: "directory" };
+          if (currentPath) {
+            const fs = require("fs");
+            if (fs.existsSync(currentPath)) {
+              options.path = currentPath;
+            }
+          }
+          const result = await Editor.Dialog.select(options);
           if (result.filePaths && result.filePaths.length > 0) {
-            this.config[field] = result.filePaths[0];
+            config[field] = result.filePaths[0];
             this.saveConfig();
           }
         },
@@ -56858,6 +56882,84 @@ module.exports = Editor.Panel.define({
             });
           } catch (error) {
             console.error("\u590D\u5236\u6280\u80FD\u7279\u6548\u5F02\u5E38:", error);
+            await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
+              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+              buttons: ["\u786E\u5B9A"]
+            });
+          }
+        },
+        async copyAll() {
+          try {
+            const config = this.config;
+            const missingFields = [];
+            if (!config.heroSourceDir)
+              missingFields.push("\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55");
+            if (!config.heroTargetDir)
+              missingFields.push("\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55");
+            if (!config.skillSourceDir)
+              missingFields.push("\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55");
+            if (!config.skillTargetDir)
+              missingFields.push("\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
+            if (missingFields.length > 0) {
+              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                detail: "\u8BF7\u914D\u7F6E\u4EE5\u4E0B\u9879\u76EE\uFF1A" + missingFields.join(""),
+                buttons: ["\u786E\u5B9A"]
+              });
+              return;
+            }
+            console.log("\u5F00\u59CB\u6279\u91CF\u590D\u5236...");
+            const fs = require("fs");
+            const path = require("path");
+            const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
+            let totalFileCount = 0;
+            console.log("========== \u590D\u5236\u82F1\u96C4\u6A21\u578B ==========");
+            console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
+            console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
+            if (fs.existsSync(config.heroTargetDir)) {
+              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+              const files = fs.readdirSync(config.heroTargetDir);
+              for (const file of files) {
+                if (!file.endsWith(".meta")) {
+                  const filePath = path.join(config.heroTargetDir, file);
+                  if (fs.statSync(filePath).isFile()) {
+                    fs.unlinkSync(filePath);
+                    console.log("\u5220\u9664:", file);
+                  }
+                }
+              }
+            }
+            const heroResult = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+            totalFileCount += (heroResult == null ? void 0 : heroResult.fileCount) || 0;
+            console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210!");
+            console.log("");
+            console.log("========== \u590D\u5236\u6280\u80FD\u7279\u6548 ==========");
+            console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
+            console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
+            if (fs.existsSync(config.skillTargetDir)) {
+              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+              const files = fs.readdirSync(config.skillTargetDir);
+              for (const file of files) {
+                if (!file.endsWith(".meta")) {
+                  const filePath = path.join(config.skillTargetDir, file);
+                  if (fs.statSync(filePath).isFile()) {
+                    fs.unlinkSync(filePath);
+                    console.log("\u5220\u9664:", file);
+                  }
+                }
+              }
+            }
+            const skillResult = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+            totalFileCount += (skillResult == null ? void 0 : skillResult.fileCount) || 0;
+            console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");
+            console.log("");
+            await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+            console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+            await Editor.Dialog.info("\u6279\u91CF\u590D\u5236\u6210\u529F", {
+              detail: "\u82F1\u96C4\u6A21\u578B\u548C\u6280\u80FD\u7279\u6548\u5DF2\u5168\u90E8\u590D\u5236\u5B8C\u6210\u5171\u590D\u5236 " + totalFileCount + " \u4E2A\u6587\u4EF6",
+              buttons: ["\u786E\u5B9A"]
+            });
+          } catch (error) {
+            console.error("\u6279\u91CF\u590D\u5236\u5F02\u5E38:", error);
             await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
               detail: error.message || "\u672A\u77E5\u9519\u8BEF",
               buttons: ["\u786E\u5B9A"]

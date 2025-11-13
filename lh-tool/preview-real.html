@@ -139,19 +139,27 @@
                             tempDir: 'E:\\temp',
                             exportMode: 'Client',
                             formatEnabled: true,
-                            exportModes: ['Client', 'Battle']
+                            exportModes: ['Client', 'Battle'],
+                            protoInputPath: '',
+                            protoOutputDir: '',
+                            protoDtsFileName: '',
+                            protoJsFileName: '',
+                            heroSourceDir: '',
+                            heroTargetDir: '',
+                            skillSourceDir: '',
+                            skillTargetDir: ''
                         }
                     };
                 },
                 
                 methods: {
                     async selectFile(field, title) {
-                        alert('选择文件: ' + title + '\\n(实际会打开文件选择对话框)');
+                        alert('选择文件: ' + title + '\n(实际会打开文件选择对话框)');
                         console.log('selectFile:', field, title);
                     },
                     
                     async selectDirectory(field, title) {
-                        alert('选择目录: ' + title + '\\n(实际会打开目录选择对话框)');
+                        alert('选择目录: ' + title + '\n(实际会打开目录选择对话框)');
                         console.log('selectDirectory:', field, title);
                     },
                     
@@ -161,17 +169,37 @@
                     
                     async exportLocalize() {
                         console.log('导出多语言');
-                        alert('导出多语言\\n\\n配置:\\n数据目录: ' + this.config.dataDir + '\\n导出目录: ' + this.config.langDir + '\\n格式化: ' + (this.config.formatEnabled ? '是' : '否') + '\\n\\n💡 在真实环境中，此功能会调用:\\ndist/table/export-localize.js\\n(已包含 xlsx 等依赖，无需 node_modules)');
+                        alert('导出多语言\n\n配置:\n数据目录: ' + this.config.dataDir + '\n导出目录: ' + this.config.langDir + '\n格式化: ' + (this.config.formatEnabled ? '是' : '否') + '\n\n💡 在真实环境中，此功能会调用:\ndist/table/export-localize.js\n(已包含 xlsx 等依赖，无需 node_modules)');
                     },
                     
                     handleTableCopy() {
                         console.log('打表+复制');
-                        alert('打表+复制\\n\\n💡 在真实环境中，此功能会调用:\\ndist/table/export-table.js\\n(已包含 iconv-lite、fs-extra 等依赖)');
+                        alert('打表+复制\n\n💡 在真实环境中，此功能会调用:\ndist/table/export-table.js\n(已包含 iconv-lite、fs-extra 等依赖)');
                     },
                     
                     handleTableCopyGen() {
                         console.log('打表+复制+生成tableMgr');
-                        alert('打表+复制+生成tableMgr\\n\\n💡 在真实环境中，会调用打包后的模块\\n所有依赖已内联到 dist 中');
+                        alert('打表+复制+生成tableMgr\n\n💡 在真实环境中，会调用打包后的模块\n所有依赖已内联到 dist 中');
+                    },
+                    
+                    generateProto() {
+                        console.log('生成协议文件');
+                        alert('生成协议文件\n\n💡 在真实环境中，此功能会调用:\ndist/proto/proto-generator.js');
+                    },
+                    
+                    copyHeroModel() {
+                        console.log('复制英雄模型');
+                        alert('复制英雄模型\n\n💡 在真实环境中，此功能会调用:\ndist/copySpine/copy-spine.js');
+                    },
+                    
+                    copySkillEffect() {
+                        console.log('复制技能特效');
+                        alert('复制技能特效\n\n💡 在真实环境中，此功能会调用:\ndist/copySpine/copy-spine.js');
+                    },
+                    
+                    copyAll() {
+                        console.log('复制英雄模型 + 技能特效');
+                        alert('批量复制\n\n💡 在真实环境中，此功能会依次调用:\n1. 复制英雄模型\n2. 复制技能特效\n\n所有操作会在后台自动完成');
                     }
                 }
             });

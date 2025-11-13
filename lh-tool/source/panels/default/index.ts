@@ -96,17 +96,52 @@ module.exports = Editor.Panel.define({
                 
                 // ========== 文件/目录选择 ==========
                 async selectFile(field: string, title: string, filters?: any[]) {
-                    const result = await Editor.Dialog.select({ title, type: 'file', filters });
+                    const config = (this as any).config;
+                    const currentPath = config[field];
+                    
+                    // 如果已有路径，使用它作为默认路径
+                    const options: any = { title, type: 'file', filters };
+                    if (currentPath) {
+                        const path = require('path');
+                        const fs = require('fs');
+                        
+                        // 检查文件是否存在
+                        if (fs.existsSync(currentPath)) {
+                            options.path = currentPath;
+                        } else {
+                            // 如果文件不存在，尝试使用父目录
+                            const dir = path.dirname(currentPath);
+                            if (fs.existsSync(dir)) {
+                                options.path = dir;
+                            }
+                        }
+                    }
+                    
+                    const result = await Editor.Dialog.select(options);
                     if (result.filePaths && result.filePaths.length > 0) {
-                        ((this as any).config as any)[field] = result.filePaths[0];
+                        config[field] = result.filePaths[0];
                         (this as any).saveConfig();
                     }
                 },
                 
                 async selectDirectory(field: string, title: string) {
-                    const result = await Editor.Dialog.select({ title, type: 'directory' });
+                    const config = (this as any).config;
+                    const currentPath = config[field];
+                    
+                    // 如果已有路径，使用它作为默认路径
+                    const options: any = { title, type: 'directory' };
+                    if (currentPath) {
+                        const fs = require('fs');
+                        
+                        // 检查目录是否存在
+                        if (fs.existsSync(currentPath)) {
+                            options.path = currentPath;
+                        }
+                    }
+                    
+                    const result = await Editor.Dialog.select(options);
                     if (result.filePaths && result.filePaths.length > 0) {
-                        ((this as any).config as any)[field] = result.filePaths[0];
+                        config[field] = result.filePaths[0];
                         (this as any).saveConfig();
                     }
                 },
@@ -327,6 +362,102 @@ module.exports = Editor.Panel.define({
                         
                     } catch (error: any) {
                         console.error('复制技能特效异常:', error);
+                        await Editor.Dialog.error('复制失败', {
+                            detail: error.message || '未知错误',
+                            buttons: ['确定']
+                        });
+                    }
+                },
+                
+                async copyAll() {
+                    try {
+                        const config = (this as any).config;
+                        
+                        // 验证所有必填字段
+                        const missingFields = [];
+                        if (!config.heroSourceDir) missingFields.push('英雄模型资源目录');
+                        if (!config.heroTargetDir) missingFields.push('英雄模型目标目录');
+                        if (!config.skillSourceDir) missingFields.push('技能特效资源目录');
+                        if (!config.skillTargetDir) missingFields.push('技能特效目标目录');
+                        
+                        if (missingFields.length > 0) {
+                            await Editor.Dialog.warn('配置错误', {
+                                detail: '请配置以下项目：\
+' + missingFields.join('\
+'),
+                                buttons: ['确定']
+                            });
+                            return;
+                        }
+                        
+                        console.log('开始批量复制...');
+                        
+                        const fs = require('fs');
+                        const path = require('path');
+                        const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
+                        
+                        let totalFileCount = 0;
+                        
+                        // 复制英雄模型
+                        console.log('========== 复制英雄模型 ==========');
+                        console.log('资源目录:', config.heroSourceDir);
+                        console.log('目标目录:', config.heroTargetDir);
+                        
+                        if (fs.existsSync(config.heroTargetDir)) {
+                            console.log('清理目标目录中的非meta文件...');
+                            const files = fs.readdirSync(config.heroTargetDir);
+                            for (const file of files) {
+                                if (!file.endsWith('.meta')) {
+                                    const filePath = path.join(config.heroTargetDir, file);
+                                    if (fs.statSync(filePath).isFile()) {
+                                        fs.unlinkSync(filePath);
+                                        console.log('删除:', file);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        const heroResult = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+                        totalFileCount += heroResult?.fileCount || 0;
+                        console.log('✅ 英雄模型复制完成!');
+                        console.log('');
+                        
+                        // 复制技能特效
+                        console.log('========== 复制技能特效 ==========');
+                        console.log('资源目录:', config.skillSourceDir);
+                        console.log('目标目录:', config.skillTargetDir);
+                        
+                        if (fs.existsSync(config.skillTargetDir)) {
+                            console.log('清理目标目录中的非meta文件...');
+                            const files = fs.readdirSync(config.skillTargetDir);
+                            for (const file of files) {
+                                if (!file.endsWith('.meta')) {
+                                    const filePath = path.join(config.skillTargetDir, file);
+                                    if (fs.statSync(filePath).isFile()) {
+                                        fs.unlinkSync(filePath);
+                                        console.log('删除:', file);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        const skillResult = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+                        totalFileCount += skillResult?.fileCount || 0;
+                        console.log('✅ 技能特效复制完成!');
+                        console.log('');
+                        
+                        // 刷新 Cocos Creator 资源
+                        await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                        console.log('✅ 已通知 Cocos Creator 刷新资源');
+                        
+                        await Editor.Dialog.info('批量复制成功', {
+                            detail: '英雄模型和技能特效已全部复制完成\
+共复制 ' + totalFileCount + ' 个文件',
+                            buttons: ['确定']
+                        });
+                        
+                    } catch (error: any) {
+                        console.error('批量复制异常:', error);
                         await Editor.Dialog.error('复制失败', {
                             detail: error.message || '未知错误',
                             buttons: ['确定']
