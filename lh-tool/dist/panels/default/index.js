@@ -56723,23 +56723,11 @@ module.exports = Editor.Panel.define({
               if (result.files) {
                 result.files.forEach((f) => console.log("  -", f));
               }
-              await Editor.Dialog.info("\u5BFC\u51FA\u6210\u529F", {
-                detail: result.message,
-                buttons: ["\u786E\u5B9A"]
-              });
             } else {
               console.error("\u274C \u5BFC\u51FA\u5931\u8D25:", result.message);
-              await Editor.Dialog.error("\u5BFC\u51FA\u5931\u8D25", {
-                detail: result.message,
-                buttons: ["\u786E\u5B9A"]
-              });
             }
           } catch (error) {
             console.error("\u5BFC\u51FA\u591A\u8BED\u8A00\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u5BFC\u51FA\u5F02\u5E38", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
           }
         },
         async handleTableCopy() {
@@ -56761,42 +56749,24 @@ module.exports = Editor.Panel.define({
               if (result.files) {
                 result.files.forEach((f) => console.log("  -", f));
               }
-              await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+              Editor.Message.request("asset-db", "refresh-asset", "db://assets");
               console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-              await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
-                detail: result.message,
-                buttons: ["\u786E\u5B9A"]
-              });
             } else {
               console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
-              await Editor.Dialog.error("\u6253\u8868\u5931\u8D25", {
-                detail: result.message,
-                buttons: ["\u786E\u5B9A"]
-              });
             }
           } catch (error) {
             console.error("\u6253\u8868\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u6253\u8868\u5F02\u5E38", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
           }
         },
         async copyHeroModel() {
           try {
             const config = this.config;
             if (!config.heroSourceDir) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55",
-                buttons: ["\u786E\u5B9A"]
-              });
+              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55");
               return;
             }
             if (!config.heroTargetDir) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55",
-                buttons: ["\u786E\u5B9A"]
-              });
+              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55");
               return;
             }
             console.log("\u5F00\u59CB\u590D\u5236\u82F1\u96C4\u6A21\u578B...");
@@ -56819,37 +56789,22 @@ module.exports = Editor.Panel.define({
             }
             const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
             const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
-            console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210!");
-            await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+            console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
+            Editor.Message.request("asset-db", "refresh-asset", "db://assets");
             console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-            await Editor.Dialog.info("\u590D\u5236\u6210\u529F", {
-              detail: `\u82F1\u96C4\u6A21\u578B\u5DF2\u6210\u529F\u590D\u5236
-\u5171\u590D\u5236 ${(result == null ? void 0 : result.fileCount) || 0} \u4E2A\u6587\u4EF6`,
-              buttons: ["\u786E\u5B9A"]
-            });
           } catch (error) {
             console.error("\u590D\u5236\u82F1\u96C4\u6A21\u578B\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
           }
         },
         async copySkillEffect() {
           try {
             const config = this.config;
             if (!config.skillSourceDir) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55",
-                buttons: ["\u786E\u5B9A"]
-              });
+              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55");
               return;
             }
             if (!config.skillTargetDir) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55",
-                buttons: ["\u786E\u5B9A"]
-              });
+              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
               return;
             }
             console.log("\u5F00\u59CB\u590D\u5236\u6280\u80FD\u7279\u6548...");
@@ -56872,20 +56827,11 @@ module.exports = Editor.Panel.define({
             }
             const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
             const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
-            console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");
-            await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+            console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
+            Editor.Message.request("asset-db", "refresh-asset", "db://assets");
             console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-            await Editor.Dialog.info("\u590D\u5236\u6210\u529F", {
-              detail: `\u6280\u80FD\u7279\u6548\u5DF2\u6210\u529F\u590D\u5236
-\u5171\u590D\u5236 ${(result == null ? void 0 : result.fileCount) || 0} \u4E2A\u6587\u4EF6`,
-              buttons: ["\u786E\u5B9A"]
-            });
           } catch (error) {
             console.error("\u590D\u5236\u6280\u80FD\u7279\u6548\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
           }
         },
         async copyAll() {
@@ -56901,10 +56847,7 @@ module.exports = Editor.Panel.define({
             if (!config.skillTargetDir)
               missingFields.push("\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
             if (missingFields.length > 0) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u914D\u7F6E\u4EE5\u4E0B\u9879\u76EE\uFF1A" + missingFields.join(""),
-                buttons: ["\u786E\u5B9A"]
-              });
+              console.warn("\u26A0\uFE0F \u8BF7\u914D\u7F6E\u4EE5\u4E0B\u9879\u76EE:", missingFields.join(", "));
               return;
             }
             console.log("\u5F00\u59CB\u6279\u91CF\u590D\u5236...");
@@ -56952,7 +56895,10 @@ module.exports = Editor.Panel.define({
             totalFileCount += (skillResult == null ? void 0 : skillResult.fileCount) || 0;
             console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");
             console.log("");
-            await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+            console.log("======================================");
+            console.log("\u2705 \u6279\u91CF\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", totalFileCount, "\u4E2A\u6587\u4EF6");
+            console.log("======================================");
+            Editor.Message.request("asset-db", "refresh-asset", "db://assets");
             console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
             await Editor.Dialog.info("\u6279\u91CF\u590D\u5236\u6210\u529F", {
               detail: "\u82F1\u96C4\u6A21\u578B\u548C\u6280\u80FD\u7279\u6548\u5DF2\u5168\u90E8\u590D\u5236\u5B8C\u6210\u5171\u590D\u5236 " + totalFileCount + " \u4E2A\u6587\u4EF6",

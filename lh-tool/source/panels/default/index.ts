@@ -166,23 +166,11 @@ module.exports = Editor.Panel.define({
                             if (result.files) {
                                 result.files.forEach((f: string) => console.log('  -', f));
                             }
-                            await Editor.Dialog.info('导出成功', {
-                                detail: result.message,
-                                buttons: ['确定']
-                            });
                         } else {
                             console.error('❌ 导出失败:', result.message);
-                            await Editor.Dialog.error('导出失败', {
-                                detail: result.message,
-                                buttons: ['确定']
-                            });
                         }
                     } catch (error: any) {
                         console.error('导出多语言异常:', error);
-                        await Editor.Dialog.error('导出异常', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
                     }
                 },
                 
@@ -210,26 +198,13 @@ module.exports = Editor.Panel.define({
                             }
                             
                             // 刷新 Cocos Creator 资源
-                            await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                            Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
                             console.log('✅ 已通知 Cocos Creator 刷新资源');
-                            
-                            await Editor.Dialog.info('打表成功', {
-                                detail: result.message,
-                                buttons: ['确定']
-                            });
                         } else {
                             console.error('❌ 打表失败:', result.message);
-                            await Editor.Dialog.error('打表失败', {
-                                detail: result.message,
-                                buttons: ['确定']
-                            });
                         }
                     } catch (error: any) {
                         console.error('打表异常:', error);
-                        await Editor.Dialog.error('打表异常', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
                     }
                 },
                 
@@ -239,18 +214,12 @@ module.exports = Editor.Panel.define({
                         
                         // 验证必填字段
                         if (!config.heroSourceDir) {
-                            await Editor.Dialog.warn('配置错误', {
-                                detail: '请选择英雄模型资源目录',
-                                buttons: ['确定']
-                            });
+                            console.warn('⚠️ 请选择英雄模型资源目录');
                             return;
                         }
                         
                         if (!config.heroTargetDir) {
-                            await Editor.Dialog.warn('配置错误', {
-                                detail: '请选择英雄模型目标目录',
-                                buttons: ['确定']
-                            });
+                            console.warn('⚠️ 请选择英雄模型目标目录');
                             return;
                         }
                         
@@ -280,24 +249,14 @@ module.exports = Editor.Panel.define({
                         const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
                         const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
                         
-                        console.log('✅ 英雄模型复制完成!');
+                        console.log('✅ 英雄模型复制完成! 共复制', result?.fileCount || 0, '个文件');
                         
                         // 刷新 Cocos Creator 资源
-                        await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                        Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
                         console.log('✅ 已通知 Cocos Creator 刷新资源');
-                        
-                        await Editor.Dialog.info('复制成功', {
-                            detail: `英雄模型已成功复制
-共复制 ${result?.fileCount || 0} 个文件`,
-                            buttons: ['确定']
-                        });
                         
                     } catch (error: any) {
                         console.error('复制英雄模型异常:', error);
-                        await Editor.Dialog.error('复制失败', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
                     }
                 },
                 
@@ -307,18 +266,12 @@ module.exports = Editor.Panel.define({
                         
                         // 验证必填字段
                         if (!config.skillSourceDir) {
-                            await Editor.Dialog.warn('配置错误', {
-                                detail: '请选择技能特效资源目录',
-                                buttons: ['确定']
-                            });
+                            console.warn('⚠️ 请选择技能特效资源目录');
                             return;
                         }
                         
                         if (!config.skillTargetDir) {
-                            await Editor.Dialog.warn('配置错误', {
-                                detail: '请选择技能特效目标目录',
-                                buttons: ['确定']
-                            });
+                            console.warn('⚠️ 请选择技能特效目标目录');
                             return;
                         }
                         
@@ -348,24 +301,14 @@ module.exports = Editor.Panel.define({
                         const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
                         const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
                         
-                        console.log('✅ 技能特效复制完成!');
+                        console.log('✅ 技能特效复制完成! 共复制', result?.fileCount || 0, '个文件');
                         
                         // 刷新 Cocos Creator 资源
-                        await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                        Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
                         console.log('✅ 已通知 Cocos Creator 刷新资源');
-                        
-                        await Editor.Dialog.info('复制成功', {
-                            detail: `技能特效已成功复制
-共复制 ${result?.fileCount || 0} 个文件`,
-                            buttons: ['确定']
-                        });
                         
                     } catch (error: any) {
                         console.error('复制技能特效异常:', error);
-                        await Editor.Dialog.error('复制失败', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
                     }
                 },
                 
@@ -381,12 +324,7 @@ module.exports = Editor.Panel.define({
                         if (!config.skillTargetDir) missingFields.push('技能特效目标目录');
                         
                         if (missingFields.length > 0) {
-                            await Editor.Dialog.warn('配置错误', {
-                                detail: '请配置以下项目：\
-' + missingFields.join('\
-'),
-                                buttons: ['确定']
-                            });
+                            console.warn('⚠️ 请配置以下项目:', missingFields.join(', '));
                             return;
                         }
                         
@@ -446,8 +384,12 @@ module.exports = Editor.Panel.define({
                         console.log('✅ 技能特效复制完成!');
                         console.log('');
                         
+                        console.log('======================================');
+                        console.log('✅ 批量复制完成! 共复制', totalFileCount, '个文件');
+                        console.log('======================================');
+                        
                         // 刷新 Cocos Creator 资源
-                        await Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                        Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
                         console.log('✅ 已通知 Cocos Creator 刷新资源');
                         
                         await Editor.Dialog.info('批量复制成功', {
