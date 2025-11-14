@@ -1,9 +1,9 @@
 <div id="app">
     <div class="container">
         <div class="tab-header">
-            <div class="tab-button" :class="{active: activeTab === 'table'}" @click="activeTab = 'table'">表格</div>
-            <div class="tab-button" :class="{active: activeTab === 'protocol'}" @click="activeTab = 'protocol'">协议</div>
-            <div class="tab-button" :class="{active: activeTab === 'other'}" @click="activeTab = 'other'">战斗表现</div>
+            <div class="tab-button" :class="{active: activeTab === 'table', disabled: isOperationRunning}" @click="switchTab('table')">表格</div>
+            <div class="tab-button" :class="{active: activeTab === 'protocol', disabled: isOperationRunning}" @click="switchTab('protocol')">协议</div>
+            <div class="tab-button" :class="{active: activeTab === 'other', disabled: isOperationRunning}" @click="switchTab('other')">战斗表现</div>
         </div>
         
         <div class="tab-content">
@@ -12,54 +12,54 @@
                     <div class="form-group">
                         <label>选择打表工具</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.exeFile" @change="saveConfig" placeholder="请选择 .exe 文件">
-                            <button @click="selectFile('exeFile', '选择打表工具', [{name: 'Executable', extensions: ['exe']}])">浏览</button>
+                            <input type="text" v-model="config.exeFile" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择 .exe 文件">
+                            <button @click="selectFile('exeFile', '选择打表工具', [{name: 'Executable', extensions: ['exe']}])" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>表格数据目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.dataDir" @change="saveConfig" placeholder="请选择目录">
-                            <button @click="selectDirectory('dataDir', '选择表格数据目录')">浏览</button>
+                            <input type="text" v-model="config.dataDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目录">
+                            <button @click="selectDirectory('dataDir', '选择表格数据目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>导出代码目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.codeDir" @change="saveConfig" placeholder="请选择目录">
-                            <button @click="selectDirectory('codeDir', '选择导出代码目录')">浏览</button>
+                            <input type="text" v-model="config.codeDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目录">
+                            <button @click="selectDirectory('codeDir', '选择导出代码目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>导出数据目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.exportDataDir" @change="saveConfig" placeholder="请选择目录">
-                            <button @click="selectDirectory('exportDataDir', '选择导出数据目录')">浏览</button>
+                            <input type="text" v-model="config.exportDataDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目录">
+                            <button @click="selectDirectory('exportDataDir', '选择导出数据目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>导出多语言目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.langDir" @change="saveConfig" placeholder="请选择目录">
-                            <button @click="selectDirectory('langDir', '选择导出多语言目录')">浏览</button>
+                            <input type="text" v-model="config.langDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目录">
+                            <button @click="selectDirectory('langDir', '选择导出多语言目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>导出临时目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.tempDir" @change="saveConfig" placeholder="请选择目录">
-                            <button @click="selectDirectory('tempDir', '选择导出临时目录')">浏览</button>
+                            <input type="text" v-model="config.tempDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目录">
+                            <button @click="selectDirectory('tempDir', '选择导出临时目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>导出模式</label>
-                        <select v-model="config.exportMode" @change="saveConfig">
+                        <select v-model="config.exportMode" @change="saveConfig" :disabled="isOperationRunning">
                             <option v-for="mode in config.exportModes" :key="mode" :value="mode">{{ mode }}</option>
                         </select>
                     </div>
@@ -67,14 +67,14 @@
                 
                 <div class="action-bar">
                     <div class="action-group">
-                        <button @click="exportLocalize" class="action-button">导出多语言</button>
+                        <button @click="exportLocalize" :disabled="isOperationRunning" class="action-button">导出多语言</button>
                         <label class="checkbox-label">
-                            <input type="checkbox" v-model="config.formatEnabled" @change="saveConfig">
+                            <input type="checkbox" v-model="config.formatEnabled" @change="saveConfig" :disabled="isOperationRunning">
                             <span>格式化</span>
                         </label>
                     </div>
-                    <button @click="handleTableCopy" class="action-button primary">打表+复制</button>
-                    <button @click="handleTableCopyGen" class="action-button primary">打表+复制+生成tableMgr</button>
+                    <button @click="handleTableCopy" :disabled="isOperationRunning" class="action-button primary">打表+复制</button>
+                    <button @click="handleTableCopyGen" :disabled="isOperationRunning" class="action-button primary">打表+复制+生成tableMgr</button>
                 </div>
             </div>
             
@@ -83,32 +83,32 @@
                     <div class="form-group">
                         <label>源 JSON 文件路径</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.protoInputPath" @change="saveConfig" placeholder="请选择协议 JSON 文件">
-                            <button @click="selectFile('protoInputPath', '选择协议 JSON 文件', [{name: 'JSON', extensions: ['json']}])">浏览</button>
+                            <input type="text" v-model="config.protoInputPath" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择协议 JSON 文件">
+                            <button @click="selectFile('protoInputPath', '选择协议 JSON 文件', [{name: 'JSON', extensions: ['json']}])" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>输出目录路径</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.protoOutputDir" @change="saveConfig" placeholder="请选择输出目录">
-                            <button @click="selectDirectory('protoOutputDir', '选择输出目录')">浏览</button>
+                            <input type="text" v-model="config.protoOutputDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择输出目录">
+                            <button @click="selectDirectory('protoOutputDir', '选择输出目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>.d.ts文件名</label>
-                        <input type="text" v-model="config.protoDtsFileName" @change="saveConfig" placeholder="proto">
+                        <input type="text" v-model="config.protoDtsFileName" @change="saveConfig" :disabled="isOperationRunning" placeholder="proto">
                     </div>
                     
                     <div class="form-group">
                         <label>.js文件名</label>
-                        <input type="text" v-model="config.protoJsFileName" @change="saveConfig" placeholder="proto">
+                        <input type="text" v-model="config.protoJsFileName" @change="saveConfig" :disabled="isOperationRunning" placeholder="proto">
                     </div>
                 </div>
                 
                 <div class="action-bar">
-                    <button @click="generateProto" class="action-button primary">生成协议文件</button>
+                    <button @click="generateProto" :disabled="isOperationRunning" class="action-button primary">生成协议文件</button>
                 </div>
             </div>
             
@@ -119,21 +119,21 @@
                     <div class="form-group">
                         <label>资源目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.heroSourceDir" @change="saveConfig" placeholder="请选择资源目录">
-                            <button @click="selectDirectory('heroSourceDir', '选择英雄模型资源目录')">浏览</button>
+                            <input type="text" v-model="config.heroSourceDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择资源目录">
+                            <button @click="selectDirectory('heroSourceDir', '选择英雄模型资源目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>目标目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.heroTargetDir" @change="saveConfig" placeholder="请选择目标目录">
-                            <button @click="selectDirectory('heroTargetDir', '选择英雄模型目标目录')">浏览</button>
+                            <input type="text" v-model="config.heroTargetDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目标目录">
+                            <button @click="selectDirectory('heroTargetDir', '选择英雄模型目标目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group button-right">
-                        <button @click="copyHeroModel" class="action-button primary">复制英雄模型</button>
+                        <button @click="copyHeroModel" :disabled="isOperationRunning" class="action-button primary">复制英雄模型</button>
                     </div>
                     
                     <div class="section-title">技能特效</div>
@@ -141,27 +141,27 @@
                     <div class="form-group">
                         <label>资源目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.skillSourceDir" @change="saveConfig" placeholder="请选择资源目录">
-                            <button @click="selectDirectory('skillSourceDir', '选择技能特效资源目录')">浏览</button>
+                            <input type="text" v-model="config.skillSourceDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择资源目录">
+                            <button @click="selectDirectory('skillSourceDir', '选择技能特效资源目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group">
                         <label>目标目录</label>
                         <div class="input-group">
-                            <input type="text" v-model="config.skillTargetDir" @change="saveConfig" placeholder="请选择目标目录">
-                            <button @click="selectDirectory('skillTargetDir', '选择技能特效目标目录')">浏览</button>
+                            <input type="text" v-model="config.skillTargetDir" @change="saveConfig" :disabled="isOperationRunning" placeholder="请选择目标目录">
+                            <button @click="selectDirectory('skillTargetDir', '选择技能特效目标目录')" :disabled="isOperationRunning">浏览</button>
                         </div>
                     </div>
                     
                     <div class="form-group button-right">
-                        <button @click="copySkillEffect" class="action-button primary">复制技能特效</button>
+                        <button @click="copySkillEffect" :disabled="isOperationRunning" class="action-button primary">复制技能特效</button>
                     </div>
                     
                     <div class="section-title">批量操作</div>
                     
                     <div class="form-group button-right">
-                        <button @click="copyAll" class="action-button primary">复制英雄模型 + 技能特效</button>
+                        <button @click="copyAll" :disabled="isOperationRunning" class="action-button primary">复制英雄模型 + 技能特效</button>
                     </div>
                 </div>
             </div>

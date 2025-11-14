@@ -27,6 +27,8 @@ module.exports = Editor.Panel.define({
             data() {
                 return {
                     activeTab: 'table',
+                    isOperationRunning: false,
+                    currentOperation: '',
                     config: {
                         exeFile: '',
                         dataDir: '',
@@ -50,12 +52,59 @@ module.exports = Editor.Panel.define({
                     }
                 };
             },
+            // 确保isOperationRunning在所有生命周期中都可用
+            beforeCreate() {
+                if (this.isOperationRunning === undefined) {
+                    this.isOperationRunning = false;
+                }
+            },
+            created() {
+                if (this.isOperationRunning === undefined) {
+                    this.isOperationRunning = false;
+                }
+            },
             
             mounted() {
                 this.loadConfig();
             },
             
             methods: {
+                // ========== 锁定控制 ==========
+                async runLockedOperation(operationName: string, operation: () => Promise<void> | void) {
+                    // 直接使用this而不是vm
+                    if (this.isOperationRunning === undefined) {
+                        this.isOperationRunning = false;
+                    }
+                    if (this.isOperationRunning) {
+                        console.warn(`⚠️ 当前操作[${this.currentOperation || '未知'}]正在执行，请稍候`);
+                        return;
+                    }
+                    this.isOperationRunning = true;
+                    this.currentOperation = operationName;
+                    console.log(`[${operationName}] 已开始，界面已锁定`);
+                    try {
+                        await operation();
+                    } catch (error: any) {
+                        console.error(`[${operationName}] 执行异常:`, error);
+                    } finally {
+                        this.isOperationRunning = false;
+                        this.currentOperation = '';
+                        console.log(`[${operationName}] 已结束，界面已解锁`);
+                    }
+                },
+
+                switchTab(tabName: string) {
+                    // 直接使用this并增加安全检查
+                    if (this.isOperationRunning === undefined) {
+                        this.isOperationRunning = false;
+                    }
+                    if (this.isOperationRunning) {
+                        console.warn('⚠️ 当前有操作进行中，请稍候再切换页签');
+                        return;
+                    }
+                    this.activeTab = tabName;
+                },
+                
                 // ========== 配置管理 ==========
                 loadConfig() {
                     try {
@@ -148,173 +197,182 @@ module.exports = Editor.Panel.define({
                 
                 // ========== 操作按钮 ==========
                 async exportLocalize() {
-                    try {
-                        const { exportLocalize } = require(join(extensionRoot, 'dist/table/export-localize'));
-                        
-                        const config = (this as any).config;
-                        const exportConfig = {
-                            dataDir: config.dataDir,
-                            langDir: config.langDir,
-                            formatEnabled: config.formatEnabled,
-                        };
-                        
-                        console.log('开始导出多语言...', exportConfig);
-                        const result = exportLocalize(exportConfig);
-                        
-                        if (result.success) {
-                            console.log('✅ 导出成功!', result.message);
-                            if (result.files) {
-                                result.files.forEach((f: string) => console.log('  -', f));
+                    await (this as any).runLockedOperation('导出多语言', async () => {
+                        try {
+                            const { exportLocalize } = require(join(extensionRoot, 'dist/table/export-localize'));
+                            
+                            const config = (this as any).config;
+                            const exportConfig = {
+                                dataDir: config.dataDir,
+                                langDir: config.langDir,
+                                formatEnabled: config.formatEnabled,
+                            };
+                            
+                            console.log('开始导出多语言...', exportConfig);
+                            const result = exportLocalize(exportConfig);
+                            
+                            if (result.success) {
+                                console.log('✅ 导出成功!', result.message);
+                                if (result.files) {
+                                    result.files.forEach((f: string) => console.log('  -', f));
+                                }
+                            } else {
+                                console.error('❌ 导出失败:', result.message);
                             }
-                        } else {
-                            console.error('❌ 导出失败:', result.message);
+                        } catch (error: any) {
+                            console.error('导出多语言异常:', error);
                         }
-                    } catch (error: any) {
-                        console.error('导出多语言异常:', error);
-                    }
+                    });
                 },
                 
                 async handleTableCopy() {
-                    try {
-                        const { exportTable } = require(join(extensionRoot, 'dist/table/export-table'));
-                        
-                        const config = (this as any).config;
-                        const exportConfig = {
-                            exeFile: config.exeFile,
-                            dataDir: config.dataDir,
-                            codeDir: config.codeDir,
-                            exportDataDir: config.exportDataDir,
-                            tempDir: config.tempDir,
-                            exportMode: config.exportMode,
-                        };
-                        
-                        console.log('开始打表+复制...', exportConfig);
-                        const result = await exportTable(exportConfig);
-                        
-                        if (result.success) {
-                            console.log('✅ 打表成功!', result.message);
-                            if (result.files) {
-                                result.files.forEach((f: string) => console.log('  -', f));
+                    await (this as any).runLockedOperation('打表+复制', async () => {
+                        try {
+                            const { exportTable } = require(join(extensionRoot, 'dist/table/export-table'));
+                            
+                            const config = (this as any).config;
+                            const exportConfig = {
+                                exeFile: config.exeFile,
+                                dataDir: config.dataDir,
+                                codeDir: config.codeDir,
+                                exportDataDir: config.exportDataDir,
+                                tempDir: config.tempDir,
+                                exportMode: config.exportMode,
+                            };
+                            
+                            console.log('开始打表+复制...', exportConfig);
+                            const result = await exportTable(exportConfig);
+                            
+                            if (result.success) {
+                                console.log('✅ 打表成功!', result.message);
+                                if (result.files) {
+                                    result.files.forEach((f: string) => console.log('  -', f));
+                                }
+                                
+                                // 刷新 Cocos Creator 资源
+                                Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                                console.log('✅ 已通知 Cocos Creator 刷新资源');
+                            } else {
+                                console.error('❌ 打表失败:', result.message);
                             }
+                        } catch (error: any) {
+                            console.error('打表异常:', error);
+                        }
+                    });
+                },
+                
+                async copyHeroModel() {
+                    await (this as any).runLockedOperation('复制英雄模型', async () => {
+                        try {
+                            const config = (this as any).config;
+                            
+                            // 验证必填字段
+                            if (!config.heroSourceDir) {
+                                console.warn('⚠️ 请选择英雄模型资源目录');
+                                return;
+                            }
+                            
+                            if (!config.heroTargetDir) {
+                                console.warn('⚠️ 请选择英雄模型目标目录');
+                                return;
+                            }
+                            
+                            console.log('开始复制英雄模型...');
+                            console.log('资源目录:', config.heroSourceDir);
+                            console.log('目标目录:', config.heroTargetDir);
+                            
+                            // 清理目标目录（保留.meta文件）
+                            const fs = require('fs');
+                            const path = require('path');
+                            
+                            if (fs.existsSync(config.heroTargetDir)) {
+                                console.log('清理目标目录中的非meta文件...');
+                                const files = fs.readdirSync(config.heroTargetDir);
+                                for (const file of files) {
+                                    if (!file.endsWith('.meta')) {
+                                        const filePath = path.join(config.heroTargetDir, file);
+                                        if (fs.statSync(filePath).isFile()) {
+                                            fs.unlinkSync(filePath);
+                                            console.log('删除:', file);
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // 执行复制逻辑
+                            const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
+                            const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+                            
+                            console.log('✅ 英雄模型复制完成! 共复制', result?.fileCount || 0, '个文件');
                             
                             // 刷新 Cocos Creator 资源
                             Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
                             console.log('✅ 已通知 Cocos Creator 刷新资源');
-                        } else {
-                            console.error('❌ 打表失败:', result.message);
+                            
+                        } catch (error: any) {
+                            console.error('复制英雄模型异常:', error);
                         }
-                    } catch (error: any) {
-                        console.error('打表异常:', error);
-                    }
-                },
-                
-                async copyHeroModel() {
-                    try {
-                        const config = (this as any).config;
-                        
-                        // 验证必填字段
-                        if (!config.heroSourceDir) {
-                            console.warn('⚠️ 请选择英雄模型资源目录');
-                            return;
-                        }
-                        
-                        if (!config.heroTargetDir) {
-                            console.warn('⚠️ 请选择英雄模型目标目录');
-                            return;
-                        }
-                        
-                        console.log('开始复制英雄模型...');
-                        console.log('资源目录:', config.heroSourceDir);
-                        console.log('目标目录:', config.heroTargetDir);
-                        
-                        // 清理目标目录（保留.meta文件）
-                        const fs = require('fs');
-                        const path = require('path');
-                        
-                        if (fs.existsSync(config.heroTargetDir)) {
-                            console.log('清理目标目录中的非meta文件...');
-                            const files = fs.readdirSync(config.heroTargetDir);
-                            for (const file of files) {
-                                if (!file.endsWith('.meta')) {
-                                    const filePath = path.join(config.heroTargetDir, file);
-                                    if (fs.statSync(filePath).isFile()) {
-                                        fs.unlinkSync(filePath);
-                                        console.log('删除:', file);
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // 执行复制逻辑
-                        const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
-                        const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
-                        
-                        console.log('✅ 英雄模型复制完成! 共复制', result?.fileCount || 0, '个文件');
-                        
-                        // 刷新 Cocos Creator 资源
-                        Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
-                        console.log('✅ 已通知 Cocos Creator 刷新资源');
-                        
-                    } catch (error: any) {
-                        console.error('复制英雄模型异常:', error);
-                    }
+                    });
                 },
                 
                 async copySkillEffect() {
-                    try {
-                        const config = (this as any).config;
-                        
-                        // 验证必填字段
-                        if (!config.skillSourceDir) {
-                            console.warn('⚠️ 请选择技能特效资源目录');
-                            return;
-                        }
-                        
-                        if (!config.skillTargetDir) {
-                            console.warn('⚠️ 请选择技能特效目标目录');
-                            return;
-                        }
-                        
-                        console.log('开始复制技能特效...');
-                        console.log('资源目录:', config.skillSourceDir);
-                        console.log('目标目录:', config.skillTargetDir);
-                        
-                        // 清理目标目录（保留.meta文件）
-                        const fs = require('fs');
-                        const path = require('path');
-                        
-                        if (fs.existsSync(config.skillTargetDir)) {
-                            console.log('清理目标目录中的非meta文件...');
-                            const files = fs.readdirSync(config.skillTargetDir);
-                            for (const file of files) {
-                                if (!file.endsWith('.meta')) {
-                                    const filePath = path.join(config.skillTargetDir, file);
-                                    if (fs.statSync(filePath).isFile()) {
-                                        fs.unlinkSync(filePath);
-                                        console.log('删除:', file);
+                    await (this as any).runLockedOperation('复制技能特效', async () => {
+                        try {
+                            const config = (this as any).config;
+                            
+                            // 验证必填字段
+                            if (!config.skillSourceDir) {
+                                console.warn('⚠️ 请选择技能特效资源目录');
+                                return;
+                            }
+                            
+                            if (!config.skillTargetDir) {
+                                console.warn('⚠️ 请选择技能特效目标目录');
+                                return;
+                            }
+                            
+                            console.log('开始复制技能特效...');
+                            console.log('资源目录:', config.skillSourceDir);
+                            console.log('目标目录:', config.skillTargetDir);
+                            
+                            // 清理目标目录（保留.meta文件）
+                            const fs = require('fs');
+                            const path = require('path');
+                            
+                            if (fs.existsSync(config.skillTargetDir)) {
+                                console.log('清理目标目录中的非meta文件...');
+                                const files = fs.readdirSync(config.skillTargetDir);
+                                for (const file of files) {
+                                    if (!file.endsWith('.meta')) {
+                                        const filePath = path.join(config.skillTargetDir, file);
+                                        if (fs.statSync(filePath).isFile()) {
+                                            fs.unlinkSync(filePath);
+                                            console.log('删除:', file);
+                                        }
                                     }
                                 }
                             }
+                            
+                            // 执行复制逻辑
+                            const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
+                            const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+                            
+                            console.log('✅ 技能特效复制完成! 共复制', result?.fileCount || 0, '个文件');
+                            
+                            // 刷新 Cocos Creator 资源
+                            Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                            console.log('✅ 已通知 Cocos Creator 刷新资源');
+                            
+                        } catch (error: any) {
+                            console.error('复制技能特效异常:', error);
                         }
-                        
-                        // 执行复制逻辑
-                        const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
-                        const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
-                        
-                        console.log('✅ 技能特效复制完成! 共复制', result?.fileCount || 0, '个文件');
-                        
-                        // 刷新 Cocos Creator 资源
-                        Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
-                        console.log('✅ 已通知 Cocos Creator 刷新资源');
-                        
-                    } catch (error: any) {
-                        console.error('复制技能特效异常:', error);
-                    }
+                    });
                 },
                 
                 async copyAll() {
-                    try {
-                        const config = (this as any).config;
+                    await (this as any).runLockedOperation('批量复制', async () => {
+                        try {
+                            const config = (this as any).config;
                         
                         // 验证所有必填字段
                         const missingFields = [];
@@ -398,20 +456,22 @@ module.exports = Editor.Panel.define({
                             buttons: ['确定']
                         });
                         
-                    } catch (error: any) {
-                        console.error('批量复制异常:', error);
-                        await Editor.Dialog.error('复制失败', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
-                    }
+                        } catch (error: any) {
+                            console.error('批量复制异常:', error);
+                            await Editor.Dialog.error('复制失败', {
+                                detail: error.message || '未知错误',
+                                buttons: ['确定']
+                            });
+                        }
+                    });
                 },
                 
                 async handleTableCopyGen() {
-                    try {
-                        const { exportTable, getModeTableNames, genTables } = require(join(extensionRoot, 'dist/table/export-table'));
-                        
-                        const config = (this as any).config;
+                    await (this as any).runLockedOperation('打表+复制+生成tableMgr', async () => {
+                        try {
+                            const { exportTable, getModeTableNames, genTables } = require(join(extensionRoot, 'dist/table/export-table'));
+                            
+                            const config = (this as any).config;
                         const exportConfig = {
                             exeFile: config.exeFile,
                             dataDir: config.dataDir,
@@ -479,20 +539,22 @@ Tables.ts 生成失败',
                             });
                         }
                         
-                    } catch (error: any) {
-                        console.error('打表异常:', error);
-                        await Editor.Dialog.error('打表异常', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
-                    }
+                        } catch (error: any) {
+                            console.error('打表异常:', error);
+                            await Editor.Dialog.error('打表异常', {
+                                detail: error.message || '未知错误',
+                                buttons: ['确定']
+                            });
+                        }
+                    });
                 },
                 
                 async generateProto() {
-                    try {
-                        const { ProtoGenerator } = require(join(extensionRoot, 'dist/proto/proto-generator'));
-                        
-                        const config = (this as any).config;
+                    await (this as any).runLockedOperation('生成协议文件', async () => {
+                        try {
+                            const { ProtoGenerator } = require(join(extensionRoot, 'dist/proto/proto-generator'));
+                            
+                            const config = (this as any).config;
                         
                         // 验证必填字段
                         if (!config.protoInputPath) {
@@ -534,13 +596,14 @@ Tables.ts 生成失败',
                             buttons: ['确定']
                         });
                         
-                    } catch (error: any) {
-                        console.error('生成协议文件异常:', error);
-                        await Editor.Dialog.error('生成失败', {
-                            detail: error.message || '未知错误',
-                            buttons: ['确定']
-                        });
-                    }
+                        } catch (error: any) {
+                            console.error('生成协议文件异常:', error);
+                            await Editor.Dialog.error('生成失败', {
+                                detail: error.message || '未知错误',
+                                buttons: ['确定']
+                            });
+                        }
+                    });
                 },
             }
         });

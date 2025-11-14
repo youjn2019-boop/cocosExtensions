@@ -56608,6 +56608,8 @@ module.exports = Editor.Panel.define({
       data() {
         return {
           activeTab: "table",
+          isOperationRunning: false,
+          currentOperation: "",
           config: {
             exeFile: "",
             dataDir: "",
@@ -56631,10 +56633,53 @@ module.exports = Editor.Panel.define({
           }
         };
       },
+      // 确保isOperationRunning在所有生命周期中都可用
+      beforeCreate() {
+        if (this.isOperationRunning === void 0) {
+          this.isOperationRunning = false;
+        }
+      },
+      created() {
+        if (this.isOperationRunning === void 0) {
+          this.isOperationRunning = false;
+        }
+      },
       mounted() {
         this.loadConfig();
       },
       methods: {
+        // ========== 锁定控制 ==========
+        async runLockedOperation(operationName, operation) {
+          if (this.isOperationRunning === void 0) {
+            this.isOperationRunning = false;
+          }
+          if (this.isOperationRunning) {
+            console.warn(`\u26A0\uFE0F \u5F53\u524D\u64CD\u4F5C[${this.currentOperation || "\u672A\u77E5"}]\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019`);
+            return;
+          }
+          this.isOperationRunning = true;
+          this.currentOperation = operationName;
+          console.log(`[${operationName}] \u5DF2\u5F00\u59CB\uFF0C\u754C\u9762\u5DF2\u9501\u5B9A`);
+          try {
+            await operation();
+          } catch (error) {
+            console.error(`[${operationName}] \u6267\u884C\u5F02\u5E38:`, error);
+          } finally {
+            this.isOperationRunning = false;
+            this.currentOperation = "";
+            console.log(`[${operationName}] \u5DF2\u7ED3\u675F\uFF0C\u754C\u9762\u5DF2\u89E3\u9501`);
+          }
+        },
+        switchTab(tabName) {
+          if (this.isOperationRunning === void 0) {
+            this.isOperationRunning = false;
+          }
+          if (this.isOperationRunning) {
+            console.warn("\u26A0\uFE0F \u5F53\u524D\u6709\u64CD\u4F5C\u8FDB\u884C\u4E2D\uFF0C\u8BF7\u7A0D\u5019\u518D\u5207\u6362\u9875\u7B7E");
+            return;
+          }
+          this.activeTab = tabName;
+        },
         // ========== 配置管理 ==========
         loadConfig() {
           try {
@@ -56708,312 +56753,326 @@ module.exports = Editor.Panel.define({
         },
         // ========== 操作按钮 ==========
         async exportLocalize() {
-          try {
-            const { exportLocalize } = require((0, import_path.join)(extensionRoot, "dist/table/export-localize"));
-            const config = this.config;
-            const exportConfig = {
-              dataDir: config.dataDir,
-              langDir: config.langDir,
-              formatEnabled: config.formatEnabled
-            };
-            console.log("\u5F00\u59CB\u5BFC\u51FA\u591A\u8BED\u8A00...", exportConfig);
-            const result = exportLocalize(exportConfig);
-            if (result.success) {
-              console.log("\u2705 \u5BFC\u51FA\u6210\u529F!", result.message);
-              if (result.files) {
-                result.files.forEach((f) => console.log("  -", f));
+          await this.runLockedOperation("\u5BFC\u51FA\u591A\u8BED\u8A00", async () => {
+            try {
+              const { exportLocalize } = require((0, import_path.join)(extensionRoot, "dist/table/export-localize"));
+              const config = this.config;
+              const exportConfig = {
+                dataDir: config.dataDir,
+                langDir: config.langDir,
+                formatEnabled: config.formatEnabled
+              };
+              console.log("\u5F00\u59CB\u5BFC\u51FA\u591A\u8BED\u8A00...", exportConfig);
+              const result = exportLocalize(exportConfig);
+              if (result.success) {
+                console.log("\u2705 \u5BFC\u51FA\u6210\u529F!", result.message);
+                if (result.files) {
+                  result.files.forEach((f) => console.log("  -", f));
+                }
+              } else {
+                console.error("\u274C \u5BFC\u51FA\u5931\u8D25:", result.message);
               }
-            } else {
-              console.error("\u274C \u5BFC\u51FA\u5931\u8D25:", result.message);
+            } catch (error) {
+              console.error("\u5BFC\u51FA\u591A\u8BED\u8A00\u5F02\u5E38:", error);
             }
-          } catch (error) {
-            console.error("\u5BFC\u51FA\u591A\u8BED\u8A00\u5F02\u5E38:", error);
-          }
+          });
         },
         async handleTableCopy() {
-          try {
-            const { exportTable } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
-            const config = this.config;
-            const exportConfig = {
-              exeFile: config.exeFile,
-              dataDir: config.dataDir,
-              codeDir: config.codeDir,
-              exportDataDir: config.exportDataDir,
-              tempDir: config.tempDir,
-              exportMode: config.exportMode
-            };
-            console.log("\u5F00\u59CB\u6253\u8868+\u590D\u5236...", exportConfig);
-            const result = await exportTable(exportConfig);
-            if (result.success) {
-              console.log("\u2705 \u6253\u8868\u6210\u529F!", result.message);
-              if (result.files) {
-                result.files.forEach((f) => console.log("  -", f));
+          await this.runLockedOperation("\u6253\u8868+\u590D\u5236", async () => {
+            try {
+              const { exportTable } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
+              const config = this.config;
+              const exportConfig = {
+                exeFile: config.exeFile,
+                dataDir: config.dataDir,
+                codeDir: config.codeDir,
+                exportDataDir: config.exportDataDir,
+                tempDir: config.tempDir,
+                exportMode: config.exportMode
+              };
+              console.log("\u5F00\u59CB\u6253\u8868+\u590D\u5236...", exportConfig);
+              const result = await exportTable(exportConfig);
+              if (result.success) {
+                console.log("\u2705 \u6253\u8868\u6210\u529F!", result.message);
+                if (result.files) {
+                  result.files.forEach((f) => console.log("  -", f));
+                }
+                Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+                console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+              } else {
+                console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
               }
-              Editor.Message.request("asset-db", "refresh-asset", "db://assets");
-              console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-            } else {
-              console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
+            } catch (error) {
+              console.error("\u6253\u8868\u5F02\u5E38:", error);
             }
-          } catch (error) {
-            console.error("\u6253\u8868\u5F02\u5E38:", error);
-          }
+          });
         },
         async copyHeroModel() {
-          try {
-            const config = this.config;
-            if (!config.heroSourceDir) {
-              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55");
-              return;
-            }
-            if (!config.heroTargetDir) {
-              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55");
-              return;
-            }
-            console.log("\u5F00\u59CB\u590D\u5236\u82F1\u96C4\u6A21\u578B...");
-            console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
-            console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
-            const fs = require("fs");
-            const path = require("path");
-            if (fs.existsSync(config.heroTargetDir)) {
-              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-              const files = fs.readdirSync(config.heroTargetDir);
-              for (const file of files) {
-                if (!file.endsWith(".meta")) {
-                  const filePath = path.join(config.heroTargetDir, file);
-                  if (fs.statSync(filePath).isFile()) {
-                    fs.unlinkSync(filePath);
-                    console.log("\u5220\u9664:", file);
+          await this.runLockedOperation("\u590D\u5236\u82F1\u96C4\u6A21\u578B", async () => {
+            try {
+              const config = this.config;
+              if (!config.heroSourceDir) {
+                console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55");
+                return;
+              }
+              if (!config.heroTargetDir) {
+                console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55");
+                return;
+              }
+              console.log("\u5F00\u59CB\u590D\u5236\u82F1\u96C4\u6A21\u578B...");
+              console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
+              console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
+              const fs = require("fs");
+              const path = require("path");
+              if (fs.existsSync(config.heroTargetDir)) {
+                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+                const files = fs.readdirSync(config.heroTargetDir);
+                for (const file of files) {
+                  if (!file.endsWith(".meta")) {
+                    const filePath = path.join(config.heroTargetDir, file);
+                    if (fs.statSync(filePath).isFile()) {
+                      fs.unlinkSync(filePath);
+                      console.log("\u5220\u9664:", file);
+                    }
                   }
                 }
               }
+              const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
+              const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+              console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
+              Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+              console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+            } catch (error) {
+              console.error("\u590D\u5236\u82F1\u96C4\u6A21\u578B\u5F02\u5E38:", error);
             }
-            const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
-            const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
-            console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
-            Editor.Message.request("asset-db", "refresh-asset", "db://assets");
-            console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-          } catch (error) {
-            console.error("\u590D\u5236\u82F1\u96C4\u6A21\u578B\u5F02\u5E38:", error);
-          }
+          });
         },
         async copySkillEffect() {
-          try {
-            const config = this.config;
-            if (!config.skillSourceDir) {
-              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55");
-              return;
-            }
-            if (!config.skillTargetDir) {
-              console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
-              return;
-            }
-            console.log("\u5F00\u59CB\u590D\u5236\u6280\u80FD\u7279\u6548...");
-            console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
-            console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
-            const fs = require("fs");
-            const path = require("path");
-            if (fs.existsSync(config.skillTargetDir)) {
-              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-              const files = fs.readdirSync(config.skillTargetDir);
-              for (const file of files) {
-                if (!file.endsWith(".meta")) {
-                  const filePath = path.join(config.skillTargetDir, file);
-                  if (fs.statSync(filePath).isFile()) {
-                    fs.unlinkSync(filePath);
-                    console.log("\u5220\u9664:", file);
+          await this.runLockedOperation("\u590D\u5236\u6280\u80FD\u7279\u6548", async () => {
+            try {
+              const config = this.config;
+              if (!config.skillSourceDir) {
+                console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55");
+                return;
+              }
+              if (!config.skillTargetDir) {
+                console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
+                return;
+              }
+              console.log("\u5F00\u59CB\u590D\u5236\u6280\u80FD\u7279\u6548...");
+              console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
+              console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
+              const fs = require("fs");
+              const path = require("path");
+              if (fs.existsSync(config.skillTargetDir)) {
+                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+                const files = fs.readdirSync(config.skillTargetDir);
+                for (const file of files) {
+                  if (!file.endsWith(".meta")) {
+                    const filePath = path.join(config.skillTargetDir, file);
+                    if (fs.statSync(filePath).isFile()) {
+                      fs.unlinkSync(filePath);
+                      console.log("\u5220\u9664:", file);
+                    }
                   }
                 }
               }
+              const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
+              const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+              console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
+              Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+              console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+            } catch (error) {
+              console.error("\u590D\u5236\u6280\u80FD\u7279\u6548\u5F02\u5E38:", error);
             }
-            const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
-            const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
-            console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
-            Editor.Message.request("asset-db", "refresh-asset", "db://assets");
-            console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-          } catch (error) {
-            console.error("\u590D\u5236\u6280\u80FD\u7279\u6548\u5F02\u5E38:", error);
-          }
+          });
         },
         async copyAll() {
-          try {
-            const config = this.config;
-            const missingFields = [];
-            if (!config.heroSourceDir)
-              missingFields.push("\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55");
-            if (!config.heroTargetDir)
-              missingFields.push("\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55");
-            if (!config.skillSourceDir)
-              missingFields.push("\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55");
-            if (!config.skillTargetDir)
-              missingFields.push("\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
-            if (missingFields.length > 0) {
-              console.warn("\u26A0\uFE0F \u8BF7\u914D\u7F6E\u4EE5\u4E0B\u9879\u76EE:", missingFields.join(", "));
-              return;
-            }
-            console.log("\u5F00\u59CB\u6279\u91CF\u590D\u5236...");
-            const fs = require("fs");
-            const path = require("path");
-            const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
-            let totalFileCount = 0;
-            console.log("========== \u590D\u5236\u82F1\u96C4\u6A21\u578B ==========");
-            console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
-            console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
-            if (fs.existsSync(config.heroTargetDir)) {
-              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-              const files = fs.readdirSync(config.heroTargetDir);
-              for (const file of files) {
-                if (!file.endsWith(".meta")) {
-                  const filePath = path.join(config.heroTargetDir, file);
-                  if (fs.statSync(filePath).isFile()) {
-                    fs.unlinkSync(filePath);
-                    console.log("\u5220\u9664:", file);
+          await this.runLockedOperation("\u6279\u91CF\u590D\u5236", async () => {
+            try {
+              const config = this.config;
+              const missingFields = [];
+              if (!config.heroSourceDir)
+                missingFields.push("\u82F1\u96C4\u6A21\u578B\u8D44\u6E90\u76EE\u5F55");
+              if (!config.heroTargetDir)
+                missingFields.push("\u82F1\u96C4\u6A21\u578B\u76EE\u6807\u76EE\u5F55");
+              if (!config.skillSourceDir)
+                missingFields.push("\u6280\u80FD\u7279\u6548\u8D44\u6E90\u76EE\u5F55");
+              if (!config.skillTargetDir)
+                missingFields.push("\u6280\u80FD\u7279\u6548\u76EE\u6807\u76EE\u5F55");
+              if (missingFields.length > 0) {
+                console.warn("\u26A0\uFE0F \u8BF7\u914D\u7F6E\u4EE5\u4E0B\u9879\u76EE:", missingFields.join(", "));
+                return;
+              }
+              console.log("\u5F00\u59CB\u6279\u91CF\u590D\u5236...");
+              const fs = require("fs");
+              const path = require("path");
+              const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
+              let totalFileCount = 0;
+              console.log("========== \u590D\u5236\u82F1\u96C4\u6A21\u578B ==========");
+              console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
+              console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
+              if (fs.existsSync(config.heroTargetDir)) {
+                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+                const files = fs.readdirSync(config.heroTargetDir);
+                for (const file of files) {
+                  if (!file.endsWith(".meta")) {
+                    const filePath = path.join(config.heroTargetDir, file);
+                    if (fs.statSync(filePath).isFile()) {
+                      fs.unlinkSync(filePath);
+                      console.log("\u5220\u9664:", file);
+                    }
                   }
                 }
               }
-            }
-            const heroResult = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
-            totalFileCount += (heroResult == null ? void 0 : heroResult.fileCount) || 0;
-            console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210!");
-            console.log("");
-            console.log("========== \u590D\u5236\u6280\u80FD\u7279\u6548 ==========");
-            console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
-            console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
-            if (fs.existsSync(config.skillTargetDir)) {
-              console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-              const files = fs.readdirSync(config.skillTargetDir);
-              for (const file of files) {
-                if (!file.endsWith(".meta")) {
-                  const filePath = path.join(config.skillTargetDir, file);
-                  if (fs.statSync(filePath).isFile()) {
-                    fs.unlinkSync(filePath);
-                    console.log("\u5220\u9664:", file);
+              const heroResult = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
+              totalFileCount += (heroResult == null ? void 0 : heroResult.fileCount) || 0;
+              console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210!");
+              console.log("");
+              console.log("========== \u590D\u5236\u6280\u80FD\u7279\u6548 ==========");
+              console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
+              console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
+              if (fs.existsSync(config.skillTargetDir)) {
+                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
+                const files = fs.readdirSync(config.skillTargetDir);
+                for (const file of files) {
+                  if (!file.endsWith(".meta")) {
+                    const filePath = path.join(config.skillTargetDir, file);
+                    if (fs.statSync(filePath).isFile()) {
+                      fs.unlinkSync(filePath);
+                      console.log("\u5220\u9664:", file);
+                    }
                   }
                 }
               }
+              const skillResult = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
+              totalFileCount += (skillResult == null ? void 0 : skillResult.fileCount) || 0;
+              console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");
+              console.log("");
+              console.log("======================================");
+              console.log("\u2705 \u6279\u91CF\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", totalFileCount, "\u4E2A\u6587\u4EF6");
+              console.log("======================================");
+              Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+              console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+              await Editor.Dialog.info("\u6279\u91CF\u590D\u5236\u6210\u529F", {
+                detail: "\u82F1\u96C4\u6A21\u578B\u548C\u6280\u80FD\u7279\u6548\u5DF2\u5168\u90E8\u590D\u5236\u5B8C\u6210\u5171\u590D\u5236 " + totalFileCount + " \u4E2A\u6587\u4EF6",
+                buttons: ["\u786E\u5B9A"]
+              });
+            } catch (error) {
+              console.error("\u6279\u91CF\u590D\u5236\u5F02\u5E38:", error);
+              await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
+                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+                buttons: ["\u786E\u5B9A"]
+              });
             }
-            const skillResult = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
-            totalFileCount += (skillResult == null ? void 0 : skillResult.fileCount) || 0;
-            console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");
-            console.log("");
-            console.log("======================================");
-            console.log("\u2705 \u6279\u91CF\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", totalFileCount, "\u4E2A\u6587\u4EF6");
-            console.log("======================================");
-            Editor.Message.request("asset-db", "refresh-asset", "db://assets");
-            console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-            await Editor.Dialog.info("\u6279\u91CF\u590D\u5236\u6210\u529F", {
-              detail: "\u82F1\u96C4\u6A21\u578B\u548C\u6280\u80FD\u7279\u6548\u5DF2\u5168\u90E8\u590D\u5236\u5B8C\u6210\u5171\u590D\u5236 " + totalFileCount + " \u4E2A\u6587\u4EF6",
-              buttons: ["\u786E\u5B9A"]
-            });
-          } catch (error) {
-            console.error("\u6279\u91CF\u590D\u5236\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
-          }
+          });
         },
         async handleTableCopyGen() {
-          var _a;
-          try {
-            const { exportTable, getModeTableNames, genTables } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
-            const config = this.config;
-            const exportConfig = {
-              exeFile: config.exeFile,
-              dataDir: config.dataDir,
-              codeDir: config.codeDir,
-              exportDataDir: config.exportDataDir,
-              tempDir: config.tempDir,
-              exportMode: config.exportMode
-            };
-            console.log("\u5F00\u59CB\u6253\u8868+\u590D\u5236+\u751F\u6210tableMgr...", exportConfig);
-            const result = await exportTable(exportConfig);
-            if (!result.success) {
-              console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
-              await Editor.Dialog.error("\u6253\u8868\u5931\u8D25", {
-                detail: result.message,
+          await this.runLockedOperation("\u6253\u8868+\u590D\u5236+\u751F\u6210tableMgr", async () => {
+            var _a;
+            try {
+              const { exportTable, getModeTableNames, genTables } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
+              const config = this.config;
+              const exportConfig = {
+                exeFile: config.exeFile,
+                dataDir: config.dataDir,
+                codeDir: config.codeDir,
+                exportDataDir: config.exportDataDir,
+                tempDir: config.tempDir,
+                exportMode: config.exportMode
+              };
+              console.log("\u5F00\u59CB\u6253\u8868+\u590D\u5236+\u751F\u6210tableMgr...", exportConfig);
+              const result = await exportTable(exportConfig);
+              if (!result.success) {
+                console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
+                await Editor.Dialog.error("\u6253\u8868\u5931\u8D25", {
+                  detail: result.message,
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              console.log("\u2705 \u6253\u8868\u6210\u529F!", result.message);
+              const tableNames = getModeTableNames(config.dataDir, config.exportMode);
+              if (!tableNames || tableNames.length === 0) {
+                console.warn("\u26A0\uFE0F \u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts");
+                await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
+                  detail: result.message + "\u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              const path = require("path");
+              const outputPath = path.join(config.codeDir, "..", "Tables.ts");
+              const genSuccess = genTables(tableNames, outputPath);
+              if (genSuccess) {
+                const filesCount = ((_a = result.files) == null ? void 0 : _a.length) || 0;
+                const message = "\u6253\u8868\u6210\u529F\uFF0C\u5171\u590D\u5236 " + filesCount + " \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210 Tables.ts (\u5305\u542B " + tableNames.length + " \u4E2A\u8868\u683C\u7BA1\u7406\u5668)";
+                console.log("\u2705", message);
+                await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+                console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+                await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
+                  detail: message,
+                  buttons: ["\u786E\u5B9A"]
+                });
+              } else {
+                await Editor.Dialog.warn("\u90E8\u5206\u6210\u529F", {
+                  detail: result.message + "Tables.ts \u751F\u6210\u5931\u8D25",
+                  buttons: ["\u786E\u5B9A"]
+                });
+              }
+            } catch (error) {
+              console.error("\u6253\u8868\u5F02\u5E38:", error);
+              await Editor.Dialog.error("\u6253\u8868\u5F02\u5E38", {
+                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
                 buttons: ["\u786E\u5B9A"]
               });
-              return;
             }
-            console.log("\u2705 \u6253\u8868\u6210\u529F!", result.message);
-            const tableNames = getModeTableNames(config.dataDir, config.exportMode);
-            if (!tableNames || tableNames.length === 0) {
-              console.warn("\u26A0\uFE0F \u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts");
-              await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
-                detail: result.message + "\u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts",
-                buttons: ["\u786E\u5B9A"]
-              });
-              return;
-            }
-            const path = require("path");
-            const outputPath = path.join(config.codeDir, "..", "Tables.ts");
-            const genSuccess = genTables(tableNames, outputPath);
-            if (genSuccess) {
-              const filesCount = ((_a = result.files) == null ? void 0 : _a.length) || 0;
-              const message = "\u6253\u8868\u6210\u529F\uFF0C\u5171\u590D\u5236 " + filesCount + " \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210 Tables.ts (\u5305\u542B " + tableNames.length + " \u4E2A\u8868\u683C\u7BA1\u7406\u5668)";
-              console.log("\u2705", message);
-              await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
-              console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-              await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
-                detail: message,
-                buttons: ["\u786E\u5B9A"]
-              });
-            } else {
-              await Editor.Dialog.warn("\u90E8\u5206\u6210\u529F", {
-                detail: result.message + "Tables.ts \u751F\u6210\u5931\u8D25",
-                buttons: ["\u786E\u5B9A"]
-              });
-            }
-          } catch (error) {
-            console.error("\u6253\u8868\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u6253\u8868\u5F02\u5E38", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
-          }
+          });
         },
         async generateProto() {
-          try {
-            const { ProtoGenerator } = require((0, import_path.join)(extensionRoot, "dist/proto/proto-generator"));
-            const config = this.config;
-            if (!config.protoInputPath) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u9009\u62E9\u6E90 JSON \u6587\u4EF6\u8DEF\u5F84",
+          await this.runLockedOperation("\u751F\u6210\u534F\u8BAE\u6587\u4EF6", async () => {
+            try {
+              const { ProtoGenerator } = require((0, import_path.join)(extensionRoot, "dist/proto/proto-generator"));
+              const config = this.config;
+              if (!config.protoInputPath) {
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8BF7\u9009\u62E9\u6E90 JSON \u6587\u4EF6\u8DEF\u5F84",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              if (!config.protoOutputDir) {
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8BF7\u9009\u62E9\u8F93\u51FA\u76EE\u5F55\u8DEF\u5F84",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              console.log("\u5F00\u59CB\u751F\u6210\u534F\u8BAE\u6587\u4EF6...");
+              console.log("\u8F93\u5165\u6587\u4EF6:", config.protoInputPath);
+              console.log("\u8F93\u51FA\u76EE\u5F55:", config.protoOutputDir);
+              console.log("TypeScript \u6587\u4EF6\u540D:", config.protoDtsFileName);
+              console.log("JavaScript \u6587\u4EF6\u540D:", config.protoJsFileName);
+              const generator = new ProtoGenerator();
+              generator.generate(
+                config.protoInputPath,
+                config.protoOutputDir,
+                (config.protoDtsFileName || "proto") + ".d.ts",
+                (config.protoJsFileName || "proto") + ".js"
+              );
+              console.log("\u2705 \u534F\u8BAE\u6587\u4EF6\u751F\u6210\u6210\u529F!");
+              await Editor.Dialog.info("\u751F\u6210\u6210\u529F", {
+                detail: "\u534F\u8BAE\u6587\u4EF6\u5DF2\u6210\u529F\u751F\u6210\u5230:" + config.protoOutputDir,
                 buttons: ["\u786E\u5B9A"]
               });
-              return;
-            }
-            if (!config.protoOutputDir) {
-              await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                detail: "\u8BF7\u9009\u62E9\u8F93\u51FA\u76EE\u5F55\u8DEF\u5F84",
+            } catch (error) {
+              console.error("\u751F\u6210\u534F\u8BAE\u6587\u4EF6\u5F02\u5E38:", error);
+              await Editor.Dialog.error("\u751F\u6210\u5931\u8D25", {
+                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
                 buttons: ["\u786E\u5B9A"]
               });
-              return;
             }
-            console.log("\u5F00\u59CB\u751F\u6210\u534F\u8BAE\u6587\u4EF6...");
-            console.log("\u8F93\u5165\u6587\u4EF6:", config.protoInputPath);
-            console.log("\u8F93\u51FA\u76EE\u5F55:", config.protoOutputDir);
-            console.log("TypeScript \u6587\u4EF6\u540D:", config.protoDtsFileName);
-            console.log("JavaScript \u6587\u4EF6\u540D:", config.protoJsFileName);
-            const generator = new ProtoGenerator();
-            generator.generate(
-              config.protoInputPath,
-              config.protoOutputDir,
-              (config.protoDtsFileName || "proto") + ".d.ts",
-              (config.protoJsFileName || "proto") + ".js"
-            );
-            console.log("\u2705 \u534F\u8BAE\u6587\u4EF6\u751F\u6210\u6210\u529F!");
-            await Editor.Dialog.info("\u751F\u6210\u6210\u529F", {
-              detail: "\u534F\u8BAE\u6587\u4EF6\u5DF2\u6210\u529F\u751F\u6210\u5230:" + config.protoOutputDir,
-              buttons: ["\u786E\u5B9A"]
-            });
-          } catch (error) {
-            console.error("\u751F\u6210\u534F\u8BAE\u6587\u4EF6\u5F02\u5E38:", error);
-            await Editor.Dialog.error("\u751F\u6210\u5931\u8D25", {
-              detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-              buttons: ["\u786E\u5B9A"]
-            });
-          }
+          });
         }
       }
     });

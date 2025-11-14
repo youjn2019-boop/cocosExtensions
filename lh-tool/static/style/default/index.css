@@ -56,6 +56,16 @@ html, body {
     font-weight: 500;
 }
 
+.tab-button.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.tab-button.disabled:hover {
+    background: transparent;
+    color: #999;
+}
+
 /* 页签内容 */
 .tab-content {
     flex: 1;
@@ -174,6 +184,17 @@ html, body {
     background: #333;
 }
 
+.input-group button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.form-group input[type="text"]:disabled,
+.form-group select:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* 底部操作栏 */
 .action-bar {
     display: flex;
@@ -251,4 +272,14 @@ html, body {
 
 .action-button.primary:active {
     background: #006cbd;
+}
+
+.action-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.checkbox-label input[type="checkbox"]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
 }
