@@ -56608,8 +56608,8 @@ module.exports = Editor.Panel.define({
       data() {
         return {
           activeTab: "table",
-          isOperationRunning: false,
-          currentOperation: "",
+          runningOperations: {},
+          // 使用对象跟踪每个操作的运行状态
           config: {
             exeFile: "",
             dataDir: "",
@@ -56633,52 +56633,40 @@ module.exports = Editor.Panel.define({
           }
         };
       },
-      // 确保isOperationRunning在所有生命周期中都可用
-      beforeCreate() {
-        if (this.isOperationRunning === void 0) {
-          this.isOperationRunning = false;
-        }
-      },
-      created() {
-        if (this.isOperationRunning === void 0) {
-          this.isOperationRunning = false;
-        }
-      },
       mounted() {
         this.loadConfig();
       },
       methods: {
         // ========== 锁定控制 ==========
         async runLockedOperation(operationName, operation) {
-          if (this.isOperationRunning === void 0) {
-            this.isOperationRunning = false;
+          if (!this.runningOperations) {
+            this.runningOperations = {};
           }
-          if (this.isOperationRunning) {
-            console.warn(`\u26A0\uFE0F \u5F53\u524D\u64CD\u4F5C[${this.currentOperation || "\u672A\u77E5"}]\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019`);
+          if (this.runningOperations[operationName]) {
+            console.warn(`\u26A0\uFE0F \u5F53\u524D\u64CD\u4F5C[${operationName}]\u6B63\u5728\u6267\u884C\uFF0C\u8BF7\u7A0D\u5019`);
             return;
           }
-          this.isOperationRunning = true;
-          this.currentOperation = operationName;
-          console.log(`[${operationName}] \u5DF2\u5F00\u59CB\uFF0C\u754C\u9762\u5DF2\u9501\u5B9A`);
+          this.runningOperations[operationName] = true;
+          console.log(`[${operationName}] \u5DF2\u5F00\u59CB\u6267\u884C`);
           try {
             await operation();
           } catch (error) {
             console.error(`[${operationName}] \u6267\u884C\u5F02\u5E38:`, error);
           } finally {
-            this.isOperationRunning = false;
-            this.currentOperation = "";
-            console.log(`[${operationName}] \u5DF2\u7ED3\u675F\uFF0C\u754C\u9762\u5DF2\u89E3\u9501`);
+            this.runningOperations[operationName] = false;
+            console.log(`[${operationName}] \u5DF2\u6267\u884C\u7ED3\u675F`);
           }
         },
         switchTab(tabName) {
-          if (this.isOperationRunning === void 0) {
-            this.isOperationRunning = false;
-          }
-          if (this.isOperationRunning) {
-            console.warn("\u26A0\uFE0F \u5F53\u524D\u6709\u64CD\u4F5C\u8FDB\u884C\u4E2D\uFF0C\u8BF7\u7A0D\u5019\u518D\u5207\u6362\u9875\u7B7E");
-            return;
-          }
           this.activeTab = tabName;
+        },
+        // 判断特定操作是否正在运行
+        isOperationRunning(operationName) {
+          return this.runningOperations && this.runningOperations[operationName] || false;
+        },
+        // 判断是否有任何相关的复制操作正在运行
+        isAnyCopyOperationRunning() {
+          return this.isOperationRunning("\u590D\u5236\u82F1\u96C4\u6A21\u578B") || this.isOperationRunning("\u590D\u5236\u6280\u80FD\u7279\u6548") || this.isOperationRunning("\u6279\u91CF\u590D\u5236");
         },
         // ========== 配置管理 ==========
         loadConfig() {
@@ -56778,7 +56766,7 @@ module.exports = Editor.Panel.define({
           });
         },
         async handleTableCopy() {
-          await this.runLockedOperation("\u6253\u8868+\u590D\u5236", async () => {
+          await this.runLockedOperation("tableOperation", async () => {
             try {
               const { exportTable } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
               const config = this.config;
@@ -56804,6 +56792,101 @@ module.exports = Editor.Panel.define({
               }
             } catch (error) {
               console.error("\u6253\u8868\u5F02\u5E38:", error);
+            }
+          });
+        },
+        async handleTableCopyGen() {
+          await this.runLockedOperation("tableOperation", async () => {
+            var _a;
+            try {
+              const { exportTable, getModeTableNames, genTables } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
+              const config = this.config;
+              const exportConfig = {
+                exeFile: config.exeFile,
+                dataDir: config.dataDir,
+                codeDir: config.codeDir,
+                exportDataDir: config.exportDataDir,
+                tempDir: config.tempDir,
+                exportMode: config.exportMode
+              };
+              console.log("\u5F00\u59CB\u6253\u8868+\u590D\u5236+\u751F\u6210tableMgr...", exportConfig);
+              const result = await exportTable(exportConfig);
+              if (!result.success) {
+                console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
+                await Editor.Dialog.error("\u6253\u8868\u5931\u8D25", {
+                  detail: result.message,
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              console.log("\u2705 \u6253\u8868\u6210\u529F!", result.message);
+              const tableNames = getModeTableNames(config.dataDir, config.exportMode);
+              if (!tableNames || tableNames.length === 0) {
+                console.warn("\u26A0\uFE0F \u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts");
+                return;
+              }
+              const path = require("path");
+              const outputPath = path.join(config.codeDir, "..", "Tables.ts");
+              const genSuccess = genTables(tableNames, outputPath);
+              if (genSuccess) {
+                const filesCount = ((_a = result.files) == null ? void 0 : _a.length) || 0;
+                const message = "\u6253\u8868\u6210\u529F\uFF0C\u5171\u590D\u5236 " + filesCount + " \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210 Tables.ts (\u5305\u542B " + tableNames.length + " \u4E2A\u8868\u683C\u7BA1\u7406\u5668)";
+                console.log("\u2705", message);
+                Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+                console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+              } else {
+                await Editor.Dialog.warn("\u90E8\u5206\u6210\u529F", {
+                  detail: result.message + "Tables.ts \u751F\u6210\u5931\u8D25",
+                  buttons: ["\u786E\u5B9A"]
+                });
+              }
+            } catch (error) {
+              console.error("\u6253\u8868\u5F02\u5E38:", error);
+              await Editor.Dialog.error("\u6253\u8868\u5F02\u5E38", {
+                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+                buttons: ["\u786E\u5B9A"]
+              });
+            }
+          });
+        },
+        async generateProto() {
+          await this.runLockedOperation("\u751F\u6210\u534F\u8BAE\u6587\u4EF6", async () => {
+            try {
+              const { ProtoGenerator } = require((0, import_path.join)(extensionRoot, "dist/proto/proto-generator"));
+              const config = this.config;
+              if (!config.protoInputPath) {
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8BF7\u9009\u62E9\u6E90 JSON \u6587\u4EF6\u8DEF\u5F84",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              if (!config.protoOutputDir) {
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8BF7\u9009\u62E9\u8F93\u51FA\u76EE\u5F55\u8DEF\u5F84",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              console.log("\u5F00\u59CB\u751F\u6210\u534F\u8BAE\u6587\u4EF6...");
+              console.log("\u8F93\u5165\u6587\u4EF6:", config.protoInputPath);
+              console.log("\u8F93\u51FA\u76EE\u5F55:", config.protoOutputDir);
+              console.log("TypeScript \u6587\u4EF6\u540D:", config.protoDtsFileName);
+              console.log("JavaScript \u6587\u4EF6\u540D:", config.protoJsFileName);
+              const generator = new ProtoGenerator();
+              generator.generate(
+                config.protoInputPath,
+                config.protoOutputDir,
+                (config.protoDtsFileName || "proto") + ".d.ts",
+                (config.protoJsFileName || "proto") + ".js"
+              );
+              console.log("\u2705 \u534F\u8BAE\u6587\u4EF6\u751F\u6210\u6210\u529F!");
+            } catch (error) {
+              console.error("\u751F\u6210\u534F\u8BAE\u6587\u4EF6\u5F02\u5E38:", error);
+              await Editor.Dialog.error("\u751F\u6210\u5931\u8D25", {
+                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+                buttons: ["\u786E\u5B9A"]
+              });
             }
           });
         },
@@ -56954,120 +57037,9 @@ module.exports = Editor.Panel.define({
               console.log("======================================");
               Editor.Message.request("asset-db", "refresh-asset", "db://assets");
               console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-              await Editor.Dialog.info("\u6279\u91CF\u590D\u5236\u6210\u529F", {
-                detail: "\u82F1\u96C4\u6A21\u578B\u548C\u6280\u80FD\u7279\u6548\u5DF2\u5168\u90E8\u590D\u5236\u5B8C\u6210\u5171\u590D\u5236 " + totalFileCount + " \u4E2A\u6587\u4EF6",
-                buttons: ["\u786E\u5B9A"]
-              });
             } catch (error) {
               console.error("\u6279\u91CF\u590D\u5236\u5F02\u5E38:", error);
               await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
-                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-                buttons: ["\u786E\u5B9A"]
-              });
-            }
-          });
-        },
-        async handleTableCopyGen() {
-          await this.runLockedOperation("\u6253\u8868+\u590D\u5236+\u751F\u6210tableMgr", async () => {
-            var _a;
-            try {
-              const { exportTable, getModeTableNames, genTables } = require((0, import_path.join)(extensionRoot, "dist/table/export-table"));
-              const config = this.config;
-              const exportConfig = {
-                exeFile: config.exeFile,
-                dataDir: config.dataDir,
-                codeDir: config.codeDir,
-                exportDataDir: config.exportDataDir,
-                tempDir: config.tempDir,
-                exportMode: config.exportMode
-              };
-              console.log("\u5F00\u59CB\u6253\u8868+\u590D\u5236+\u751F\u6210tableMgr...", exportConfig);
-              const result = await exportTable(exportConfig);
-              if (!result.success) {
-                console.error("\u274C \u6253\u8868\u5931\u8D25:", result.message);
-                await Editor.Dialog.error("\u6253\u8868\u5931\u8D25", {
-                  detail: result.message,
-                  buttons: ["\u786E\u5B9A"]
-                });
-                return;
-              }
-              console.log("\u2705 \u6253\u8868\u6210\u529F!", result.message);
-              const tableNames = getModeTableNames(config.dataDir, config.exportMode);
-              if (!tableNames || tableNames.length === 0) {
-                console.warn("\u26A0\uFE0F \u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts");
-                await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
-                  detail: result.message + "\u672A\u627E\u5230\u8868\u683C\uFF0C\u8DF3\u8FC7\u751F\u6210 Tables.ts",
-                  buttons: ["\u786E\u5B9A"]
-                });
-                return;
-              }
-              const path = require("path");
-              const outputPath = path.join(config.codeDir, "..", "Tables.ts");
-              const genSuccess = genTables(tableNames, outputPath);
-              if (genSuccess) {
-                const filesCount = ((_a = result.files) == null ? void 0 : _a.length) || 0;
-                const message = "\u6253\u8868\u6210\u529F\uFF0C\u5171\u590D\u5236 " + filesCount + " \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210 Tables.ts (\u5305\u542B " + tableNames.length + " \u4E2A\u8868\u683C\u7BA1\u7406\u5668)";
-                console.log("\u2705", message);
-                await Editor.Message.request("asset-db", "refresh-asset", "db://assets");
-                console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
-                await Editor.Dialog.info("\u6253\u8868\u6210\u529F", {
-                  detail: message,
-                  buttons: ["\u786E\u5B9A"]
-                });
-              } else {
-                await Editor.Dialog.warn("\u90E8\u5206\u6210\u529F", {
-                  detail: result.message + "Tables.ts \u751F\u6210\u5931\u8D25",
-                  buttons: ["\u786E\u5B9A"]
-                });
-              }
-            } catch (error) {
-              console.error("\u6253\u8868\u5F02\u5E38:", error);
-              await Editor.Dialog.error("\u6253\u8868\u5F02\u5E38", {
-                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
-                buttons: ["\u786E\u5B9A"]
-              });
-            }
-          });
-        },
-        async generateProto() {
-          await this.runLockedOperation("\u751F\u6210\u534F\u8BAE\u6587\u4EF6", async () => {
-            try {
-              const { ProtoGenerator } = require((0, import_path.join)(extensionRoot, "dist/proto/proto-generator"));
-              const config = this.config;
-              if (!config.protoInputPath) {
-                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                  detail: "\u8BF7\u9009\u62E9\u6E90 JSON \u6587\u4EF6\u8DEF\u5F84",
-                  buttons: ["\u786E\u5B9A"]
-                });
-                return;
-              }
-              if (!config.protoOutputDir) {
-                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
-                  detail: "\u8BF7\u9009\u62E9\u8F93\u51FA\u76EE\u5F55\u8DEF\u5F84",
-                  buttons: ["\u786E\u5B9A"]
-                });
-                return;
-              }
-              console.log("\u5F00\u59CB\u751F\u6210\u534F\u8BAE\u6587\u4EF6...");
-              console.log("\u8F93\u5165\u6587\u4EF6:", config.protoInputPath);
-              console.log("\u8F93\u51FA\u76EE\u5F55:", config.protoOutputDir);
-              console.log("TypeScript \u6587\u4EF6\u540D:", config.protoDtsFileName);
-              console.log("JavaScript \u6587\u4EF6\u540D:", config.protoJsFileName);
-              const generator = new ProtoGenerator();
-              generator.generate(
-                config.protoInputPath,
-                config.protoOutputDir,
-                (config.protoDtsFileName || "proto") + ".d.ts",
-                (config.protoJsFileName || "proto") + ".js"
-              );
-              console.log("\u2705 \u534F\u8BAE\u6587\u4EF6\u751F\u6210\u6210\u529F!");
-              await Editor.Dialog.info("\u751F\u6210\u6210\u529F", {
-                detail: "\u534F\u8BAE\u6587\u4EF6\u5DF2\u6210\u529F\u751F\u6210\u5230:" + config.protoOutputDir,
-                buttons: ["\u786E\u5B9A"]
-              });
-            } catch (error) {
-              console.error("\u751F\u6210\u534F\u8BAE\u6587\u4EF6\u5F02\u5E38:", error);
-              await Editor.Dialog.error("\u751F\u6210\u5931\u8D25", {
                 detail: error.message || "\u672A\u77E5\u9519\u8BEF",
                 buttons: ["\u786E\u5B9A"]
               });
