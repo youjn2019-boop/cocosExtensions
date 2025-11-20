@@ -28,6 +28,7 @@ module.exports = Editor.Panel.define({
                 return {
                     activeTab: 'table',
                     runningOperations: {}, // 使用对象跟踪每个操作的运行状态
+                    newTableName: '', // 用于添加新表格名的输入框
                     config: {
                         exeFile: '',
                         dataDir: '',
@@ -48,6 +49,26 @@ module.exports = Editor.Panel.define({
                         heroTargetDir: '',
                         skillSourceDir: '',
                         skillTargetDir: '',
+                        // 战斗逻辑配置
+                        logicConfigDir: '',
+                        logicOutputDir: '',
+                        battleTableNames: [
+                            'behavior',
+                            'buffModify',
+                            'buff',
+                            'buffType',
+                            'buffProcess',
+                            'buffTrigger',
+                            'buffAbility',
+                            'bullet',
+                            'condition',
+                            'findTarget',
+                            'skill',
+                            'summon',
+                            'damageExpressConfig',
+                            'damageExpressDefine',
+                            'damageExpressConst',
+                        ],
                     }
                 };
             },
@@ -100,6 +121,61 @@ module.exports = Editor.Panel.define({
                     return this.isOperationRunning('复制英雄模型') || 
                            this.isOperationRunning('复制技能特效') || 
                            this.isOperationRunning('批量复制');
+                },
+
+                // ========== 战斗表格名管理 ==========
+                addTableName() {
+                    const tableName = (this as any).newTableName.trim();
+                    if (!tableName) {
+                        console.warn('⚠️ 表格名不能为空');
+                        return;
+                    }
+
+                    const config = (this as any).config;
+                    
+                    // 检查是否已存在
+                    if (config.battleTableNames.includes(tableName)) {
+                        console.warn('⚠️ 表格名已存在:', tableName);
+                        return;
+                    }
+
+                    // 添加到列表
+                    config.battleTableNames.push(tableName);
+                    (this as any).newTableName = '';
+                    (this as any).saveConfig();
+                    console.log('✅ 已添加表格:', tableName);
+                },
+
+                removeTableName(index: number) {
+                    const config = (this as any).config;
+                    const tableName = config.battleTableNames[index];
+                    config.battleTableNames.splice(index, 1);
+                    (this as any).saveConfig();
+                    console.log('✅ 已删除表格:', tableName);
+                },
+
+                resetTableNames() {
+                    const defaultTableNames = [
+                        'behavior',
+                        'buffModify',
+                        'buff',
+                        'buffType',
+                        'buffProcess',
+                        'buffTrigger',
+                        'buffAbility',
+                        'bullet',
+                        'condition',
+                        'findTarget',
+                        'skill',
+                        'summon',
+                        'damageExpressConfig',
+                        'damageExpressDefine',
+                        'damageExpressConst',
+                    ];
+                    const config = (this as any).config;
+                    config.battleTableNames = [...defaultTableNames];
+                    (this as any).saveConfig();
+                    console.log('✅ 已重置为默认表格列表 (共', defaultTableNames.length, '个)');
                 },
 
                 // ========== 配置管理 ==========
@@ -304,8 +380,7 @@ module.exports = Editor.Panel.define({
 
                             if (genSuccess) {
                                 const filesCount = result.files?.length || 0;
-                                const message = '打表成功，共复制 ' + filesCount + ' 个文件\
-已生成 Tables.ts (包含 ' + tableNames.length + ' 个表格管理器)';
+                                const message = '打表成功，共复制 ' + filesCount + ' 个文件\\n已生成 Tables.ts (包含 ' + tableNames.length + ' 个表格管理器)';
                                 console.log('✅', message);
 
                                 // 刷新 Cocos Creator 资源
@@ -313,9 +388,7 @@ module.exports = Editor.Panel.define({
                                 console.log('✅ 已通知 Cocos Creator 刷新资源');
                             } else {
                                 await Editor.Dialog.warn('部分成功', {
-                                    detail: result.message + '\
-\
-Tables.ts 生成失败',
+                                    detail: result.message + '\\n\\nTables.ts 生成失败',
                                     buttons: ['确定']
                                 });
                             }
@@ -567,6 +640,122 @@ Tables.ts 生成失败',
                             console.log('✅ 已通知 Cocos Creator 刷新资源');
                         } catch (error: any) {
                             console.error('批量复制异常:', error);
+                            await Editor.Dialog.error('复制失败', {
+                                detail: error.message || '未知错误',
+                                buttons: ['确定']
+                            });
+                        }
+                    });
+                },
+
+                async processLogic() {
+                    await (this as any).runLockedOperation('处理战斗逻辑', async () => {
+                        try {
+                            const config = (this as any).config;
+
+                            if (!config.logicConfigDir) {
+                                console.warn('⚠️ 请选择源表格目录');
+                                await Editor.Dialog.warn('配置错误', {
+                                    detail: '请选择源表格目录',
+                                    buttons: ['确定']
+                                });
+                                return;
+                            }
+
+                            if (!config.logicOutputDir) {
+                                console.warn('⚠️ 请选择目标表格目录');
+                                await Editor.Dialog.warn('配置错误', {
+                                    detail: '请选择目标表格目录',
+                                    buttons: ['确定']
+                                });
+                                return;
+                            }
+
+                            if (!config.battleTableNames || config.battleTableNames.length === 0) {
+                                console.warn('⚠️ 表格列表为空');
+                                await Editor.Dialog.warn('配置错误', {
+                                    detail: '表格列表为空，请添加表格或重置为默认',
+                                    buttons: ['确定']
+                                });
+                                return;
+                            }
+
+                            console.log('开始复制战斗表格...');
+                            console.log('源表格目录:', config.logicConfigDir);
+                            console.log('目标表格目录:', config.logicOutputDir);
+                            console.log('表格数量:', config.battleTableNames.length);
+
+                            const fs = require('fs-extra');
+                            const path = require('path');
+
+                            if (!fs.existsSync(config.logicConfigDir)) {
+                                await Editor.Dialog.error('源目录不存在', {
+                                    detail: config.logicConfigDir,
+                                    buttons: ['确定']
+                                });
+                                return;
+                            }
+
+                            fs.ensureDirSync(config.logicOutputDir);
+
+                            const copiedFiles: string[] = [];
+                            const errorFiles: { name: string; error: string }[] = [];
+
+                            for (const tableName of config.battleTableNames) {
+                                const sourcePath = path.join(config.logicConfigDir, `${tableName}.ts`);
+                                const destPath = path.join(config.logicOutputDir, `${tableName}.ts`);
+
+                                try {
+                                    if (!fs.existsSync(sourcePath)) {
+                                        console.warn(`⚠️ 源文件不存在: ${sourcePath}`);
+                                        errorFiles.push({
+                                            name: tableName,
+                                            error: '源文件不存在',
+                                        });
+                                        continue;
+                                    }
+
+                                    fs.copyFileSync(sourcePath, destPath);
+                                    copiedFiles.push(destPath);
+                                    console.log(`✅ 复制文件 => ${destPath}`);
+                                } catch (error: any) {
+                                    console.error(`❌ 复制文件失败: ${tableName}`, error);
+                                    errorFiles.push({
+                                        name: tableName,
+                                        error: error.message || '未知错误',
+                                    });
+                                }
+                            }
+
+                            let message = `成功复制 ${copiedFiles.length} 个文件`;
+                            if (errorFiles.length > 0) {
+                                message += `，失败 ${errorFiles.length} 个文件`;
+                            }
+
+                            if (copiedFiles.length > 0) {
+                                console.log('✅', message);
+                                console.log('复制的文件:');
+                                copiedFiles.forEach((file: string) => console.log('  -', file));
+                                
+                                if (errorFiles.length > 0) {
+                                    console.warn('失败的文件:');
+                                    errorFiles.forEach((item: any) => 
+                                        console.warn(`  - ${item.name}: ${item.error}`)
+                                    );
+                                }
+                                
+                                Editor.Message.request('asset-db', 'refresh-asset', 'db://assets');
+                                console.log('✅ 已通知 Cocos Creator 刷新资源');
+                            } else {
+                                console.error('❌', message);
+                                const errorList = errorFiles.map(e => `${e.name}: ${e.error}`).join('\\n');
+                                await Editor.Dialog.error('复制失败', {
+                                    detail: `${message}\\n\\n${errorList}`,
+                                    buttons: ['确定']
+                                });
+                            }
+                        } catch (error: any) {
+                            console.error('复制战斗表格异常:', error);
                             await Editor.Dialog.error('复制失败', {
                                 detail: error.message || '未知错误',
                                 buttons: ['确定']

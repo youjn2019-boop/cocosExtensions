@@ -56610,6 +56610,8 @@ module.exports = Editor.Panel.define({
           activeTab: "table",
           runningOperations: {},
           // 使用对象跟踪每个操作的运行状态
+          newTableName: "",
+          // 用于添加新表格名的输入框
           config: {
             exeFile: "",
             dataDir: "",
@@ -56629,7 +56631,27 @@ module.exports = Editor.Panel.define({
             heroSourceDir: "",
             heroTargetDir: "",
             skillSourceDir: "",
-            skillTargetDir: ""
+            skillTargetDir: "",
+            // 战斗逻辑配置
+            logicConfigDir: "",
+            logicOutputDir: "",
+            battleTableNames: [
+              "behavior",
+              "buffModify",
+              "buff",
+              "buffType",
+              "buffProcess",
+              "buffTrigger",
+              "buffAbility",
+              "bullet",
+              "condition",
+              "findTarget",
+              "skill",
+              "summon",
+              "damageExpressConfig",
+              "damageExpressDefine",
+              "damageExpressConst"
+            ]
           }
         };
       },
@@ -56667,6 +56689,53 @@ module.exports = Editor.Panel.define({
         // 判断是否有任何相关的复制操作正在运行
         isAnyCopyOperationRunning() {
           return this.isOperationRunning("\u590D\u5236\u82F1\u96C4\u6A21\u578B") || this.isOperationRunning("\u590D\u5236\u6280\u80FD\u7279\u6548") || this.isOperationRunning("\u6279\u91CF\u590D\u5236");
+        },
+        // ========== 战斗表格名管理 ==========
+        addTableName() {
+          const tableName = this.newTableName.trim();
+          if (!tableName) {
+            console.warn("\u26A0\uFE0F \u8868\u683C\u540D\u4E0D\u80FD\u4E3A\u7A7A");
+            return;
+          }
+          const config = this.config;
+          if (config.battleTableNames.includes(tableName)) {
+            console.warn("\u26A0\uFE0F \u8868\u683C\u540D\u5DF2\u5B58\u5728:", tableName);
+            return;
+          }
+          config.battleTableNames.push(tableName);
+          this.newTableName = "";
+          this.saveConfig();
+          console.log("\u2705 \u5DF2\u6DFB\u52A0\u8868\u683C:", tableName);
+        },
+        removeTableName(index) {
+          const config = this.config;
+          const tableName = config.battleTableNames[index];
+          config.battleTableNames.splice(index, 1);
+          this.saveConfig();
+          console.log("\u2705 \u5DF2\u5220\u9664\u8868\u683C:", tableName);
+        },
+        resetTableNames() {
+          const defaultTableNames = [
+            "behavior",
+            "buffModify",
+            "buff",
+            "buffType",
+            "buffProcess",
+            "buffTrigger",
+            "buffAbility",
+            "bullet",
+            "condition",
+            "findTarget",
+            "skill",
+            "summon",
+            "damageExpressConfig",
+            "damageExpressDefine",
+            "damageExpressConst"
+          ];
+          const config = this.config;
+          config.battleTableNames = [...defaultTableNames];
+          this.saveConfig();
+          console.log("\u2705 \u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u8868\u683C\u5217\u8868 (\u5171", defaultTableNames.length, "\u4E2A)");
         },
         // ========== 配置管理 ==========
         loadConfig() {
@@ -56830,13 +56899,13 @@ module.exports = Editor.Panel.define({
               const genSuccess = genTables(tableNames, outputPath);
               if (genSuccess) {
                 const filesCount = ((_a = result.files) == null ? void 0 : _a.length) || 0;
-                const message = "\u6253\u8868\u6210\u529F\uFF0C\u5171\u590D\u5236 " + filesCount + " \u4E2A\u6587\u4EF6\u5DF2\u751F\u6210 Tables.ts (\u5305\u542B " + tableNames.length + " \u4E2A\u8868\u683C\u7BA1\u7406\u5668)";
+                const message = "\u6253\u8868\u6210\u529F\uFF0C\u5171\u590D\u5236 " + filesCount + " \u4E2A\u6587\u4EF6\\n\u5DF2\u751F\u6210 Tables.ts (\u5305\u542B " + tableNames.length + " \u4E2A\u8868\u683C\u7BA1\u7406\u5668)";
                 console.log("\u2705", message);
                 Editor.Message.request("asset-db", "refresh-asset", "db://assets");
                 console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
               } else {
                 await Editor.Dialog.warn("\u90E8\u5206\u6210\u529F", {
-                  detail: result.message + "Tables.ts \u751F\u6210\u5931\u8D25",
+                  detail: result.message + "\\n\\nTables.ts \u751F\u6210\u5931\u8D25",
                   buttons: ["\u786E\u5B9A"]
                 });
               }
@@ -57039,6 +57108,106 @@ module.exports = Editor.Panel.define({
               console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
             } catch (error) {
               console.error("\u6279\u91CF\u590D\u5236\u5F02\u5E38:", error);
+              await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
+                detail: error.message || "\u672A\u77E5\u9519\u8BEF",
+                buttons: ["\u786E\u5B9A"]
+              });
+            }
+          });
+        },
+        async processLogic() {
+          await this.runLockedOperation("\u5904\u7406\u6218\u6597\u903B\u8F91", async () => {
+            try {
+              const config = this.config;
+              if (!config.logicConfigDir) {
+                console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u6E90\u8868\u683C\u76EE\u5F55");
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8BF7\u9009\u62E9\u6E90\u8868\u683C\u76EE\u5F55",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              if (!config.logicOutputDir) {
+                console.warn("\u26A0\uFE0F \u8BF7\u9009\u62E9\u76EE\u6807\u8868\u683C\u76EE\u5F55");
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8BF7\u9009\u62E9\u76EE\u6807\u8868\u683C\u76EE\u5F55",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              if (!config.battleTableNames || config.battleTableNames.length === 0) {
+                console.warn("\u26A0\uFE0F \u8868\u683C\u5217\u8868\u4E3A\u7A7A");
+                await Editor.Dialog.warn("\u914D\u7F6E\u9519\u8BEF", {
+                  detail: "\u8868\u683C\u5217\u8868\u4E3A\u7A7A\uFF0C\u8BF7\u6DFB\u52A0\u8868\u683C\u6216\u91CD\u7F6E\u4E3A\u9ED8\u8BA4",
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              console.log("\u5F00\u59CB\u590D\u5236\u6218\u6597\u8868\u683C...");
+              console.log("\u6E90\u8868\u683C\u76EE\u5F55:", config.logicConfigDir);
+              console.log("\u76EE\u6807\u8868\u683C\u76EE\u5F55:", config.logicOutputDir);
+              console.log("\u8868\u683C\u6570\u91CF:", config.battleTableNames.length);
+              const fs = require_lib();
+              const path = require("path");
+              if (!fs.existsSync(config.logicConfigDir)) {
+                await Editor.Dialog.error("\u6E90\u76EE\u5F55\u4E0D\u5B58\u5728", {
+                  detail: config.logicConfigDir,
+                  buttons: ["\u786E\u5B9A"]
+                });
+                return;
+              }
+              fs.ensureDirSync(config.logicOutputDir);
+              const copiedFiles = [];
+              const errorFiles = [];
+              for (const tableName of config.battleTableNames) {
+                const sourcePath = path.join(config.logicConfigDir, `${tableName}.ts`);
+                const destPath = path.join(config.logicOutputDir, `${tableName}.ts`);
+                try {
+                  if (!fs.existsSync(sourcePath)) {
+                    console.warn(`\u26A0\uFE0F \u6E90\u6587\u4EF6\u4E0D\u5B58\u5728: ${sourcePath}`);
+                    errorFiles.push({
+                      name: tableName,
+                      error: "\u6E90\u6587\u4EF6\u4E0D\u5B58\u5728"
+                    });
+                    continue;
+                  }
+                  fs.copyFileSync(sourcePath, destPath);
+                  copiedFiles.push(destPath);
+                  console.log(`\u2705 \u590D\u5236\u6587\u4EF6 => ${destPath}`);
+                } catch (error) {
+                  console.error(`\u274C \u590D\u5236\u6587\u4EF6\u5931\u8D25: ${tableName}`, error);
+                  errorFiles.push({
+                    name: tableName,
+                    error: error.message || "\u672A\u77E5\u9519\u8BEF"
+                  });
+                }
+              }
+              let message = `\u6210\u529F\u590D\u5236 ${copiedFiles.length} \u4E2A\u6587\u4EF6`;
+              if (errorFiles.length > 0) {
+                message += `\uFF0C\u5931\u8D25 ${errorFiles.length} \u4E2A\u6587\u4EF6`;
+              }
+              if (copiedFiles.length > 0) {
+                console.log("\u2705", message);
+                console.log("\u590D\u5236\u7684\u6587\u4EF6:");
+                copiedFiles.forEach((file) => console.log("  -", file));
+                if (errorFiles.length > 0) {
+                  console.warn("\u5931\u8D25\u7684\u6587\u4EF6:");
+                  errorFiles.forEach(
+                    (item) => console.warn(`  - ${item.name}: ${item.error}`)
+                  );
+                }
+                Editor.Message.request("asset-db", "refresh-asset", "db://assets");
+                console.log("\u2705 \u5DF2\u901A\u77E5 Cocos Creator \u5237\u65B0\u8D44\u6E90");
+              } else {
+                console.error("\u274C", message);
+                const errorList = errorFiles.map((e) => `${e.name}: ${e.error}`).join("\\n");
+                await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
+                  detail: `${message}\\n\\n${errorList}`,
+                  buttons: ["\u786E\u5B9A"]
+                });
+              }
+            } catch (error) {
+              console.error("\u590D\u5236\u6218\u6597\u8868\u683C\u5F02\u5E38:", error);
               await Editor.Dialog.error("\u590D\u5236\u5931\u8D25", {
                 detail: error.message || "\u672A\u77E5\u9519\u8BEF",
                 buttons: ["\u786E\u5B9A"]

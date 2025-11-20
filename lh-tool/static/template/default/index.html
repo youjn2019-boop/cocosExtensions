@@ -4,6 +4,7 @@
             <div class="tab-button" :class="{active: activeTab === 'table'}" @click="switchTab('table')">表格</div>
             <div class="tab-button" :class="{active: activeTab === 'protocol'}" @click="switchTab('protocol')">协议</div>
             <div class="tab-button" :class="{active: activeTab === 'other'}" @click="switchTab('other')">战斗表现</div>
+            <div class="tab-button" :class="{active: activeTab === 'logic'}" @click="switchTab('logic')">战斗逻辑</div>
         </div>
         
         <div class="tab-content">
@@ -74,7 +75,7 @@
                         </label>
                     </div>
                     <button @click="handleTableCopy" :disabled="isOperationRunning('tableOperation')" class="action-button primary">打表+复制</button>
-                    <button @click="handleTableCopyGen" :disabled="isOperationRunning('tableOperation')" class="action-button primary">打表+复制+生成tableMgr</button>
+                    <button @click="handleTableCopyGen" :disabled="isOperationRunning('tableOperation') || config.exportMode !== 'Client'" class="action-button primary">打表+复制+生成tableMgr</button>
                 </div>
             </div>
             
@@ -163,6 +164,54 @@
                     <div class="form-group button-right">
                         <button @click="copyAll" :disabled="isOperationRunning('批量复制') || isAnyCopyOperationRunning()" class="action-button primary">复制英雄模型 + 技能特效</button>
                     </div>
+                </div>
+            </div>
+            
+            <div class="tab-panel" :class="{active: activeTab === 'logic'}" v-show="activeTab === 'logic'">
+                <div class="tab-panel-content">
+                    <div class="section-title">战斗表格复制</div>
+                    
+                    <div class="form-group">
+                        <label>源表格目录</label>
+                        <div class="input-group">
+                            <input type="text" v-model="config.logicConfigDir" @change="saveConfig" placeholder="请选择源表格目录">
+                            <button @click="selectDirectory('logicConfigDir', '选择源表格目录')">浏览</button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>目标表格目录</label>
+                        <div class="input-group">
+                            <input type="text" v-model="config.logicOutputDir" @change="saveConfig" placeholder="请选择目标表格目录">
+                            <button @click="selectDirectory('logicOutputDir', '选择目标表格目录')">浏览</button>
+                        </div>
+                    </div>
+                    
+                    <div class="section-title">表格配置</div>
+                    
+                    <div class="form-group">
+                        <label>添加表格名</label>
+                        <div class="input-group">
+                            <input type="text" v-model="newTableName" @keyup.enter="addTableName" placeholder="输入表格类名后按回车添加">
+                            <button @click="addTableName">添加</button>
+                            <button @click="resetTableNames">重置为默认</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-list">
+                        <div class="table-item" v-for="(tableName, index) in config.battleTableNames" :key="index">
+                            <span class="table-name">{{ tableName }}</span>
+                            <button class="delete-button" @click="removeTableName(index)" title="删除">×</button>
+                        </div>
+                        <div v-if="!config.battleTableNames || config.battleTableNames.length === 0" class="empty-hint">
+                            暂无表格，请添加或重置为默认
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-bar">
+                    <span class="table-count">共 {{ config.battleTableNames?.length || 0 }} 个表格</span>
+                    <button @click="processLogic" :disabled="isOperationRunning('处理战斗逻辑')" class="action-button primary">复制战斗表格</button>
                 </div>
             </div>
         </div>
