@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs-extra';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs-extra';
 import { join } from 'path';
 
 /**
@@ -83,6 +83,52 @@ export class ProtoGenerator {
                 if (Array.isArray(elementArray)) {
                     // 处理 [["ItemInfo","id"]] 这种格式，取第一个元素作为类型
                     elementType = elementArray[0];
+                } else if (typeof elementArray === 'object' && elementArray !== null) {
+                    // 处理 [[{"k":0, "v":0}], "描述"] 这种 Map 数组格式
+                    if (Object.prototype.hasOwnProperty.call(elementArray, "v")) {
+                        const valueType = elementArray.v;
+                        let keyType = 'string';
+                        // k 的值：0 表示 number 类型的 key，"" 表示 string 类型的 key
+                        if (typeof elementArray.k === 'number' && elementArray.k === 0) {
+                            keyType = 'number';
+                        } else if (typeof elementArray.k === 'string' && elementArray.k === '') {
+                            keyType = 'string';
+                        }
+
+                        if (typeof valueType === 'number') {
+                            return { tsType: `Record<${keyType}, number>[]`, description };
+                        } else if (typeof valueType === 'string') {
+                            if (!valueType) {
+                                return { tsType: `Record<${keyType}, string>[]`, description };
+                            } else {
+                                const classProtocol = this.protocolMap.get(valueType);
+                                if (classProtocol && classProtocol.p) {
+                                    usedProtocols.add(valueType);
+                                    return { tsType: `Record<${keyType}, ${valueType}>[]`, description };
+                                } else {
+                                    return { tsType: `Record<${keyType}, ${valueType}>[]`, description };
+                                }
+                            }
+                        } else if (Array.isArray(valueType)) {
+                            const mapArrValueType = valueType[0];
+                            if (typeof mapArrValueType === 'number') {
+                                return { tsType: `Record<${keyType}, number[]>[]`, description };
+                            } else if (typeof mapArrValueType === 'string') {
+                                if (!mapArrValueType) {
+                                    return { tsType: `Record<${keyType}, string[]>[]`, description };
+                                } else {
+                                    const classProtocol = this.protocolMap.get(mapArrValueType);
+                                    if (classProtocol && classProtocol.p) {
+                                        usedProtocols.add(mapArrValueType);
+                                        return { tsType: `Record<${keyType}, ${mapArrValueType}[]>[]`, description };
+                                    } else {
+                                        return { tsType: `Record<${keyType}, ${mapArrValueType}[]>[]`, description };
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    return { tsType: 'any', description: '' };
                 } else {
                     if (typeof elementArray === 'number') {
                         return { tsType: 'number[]', description };
@@ -122,9 +168,11 @@ export class ProtoGenerator {
                 if (Object.prototype.hasOwnProperty.call(type, "v")) {
                     const valueType = type.v; // 如果是{xxx}格式，value是xxx；如果是{xxx:yyy}格式，value是yyy
                     let keyType = 'string';
-                    // k 的值：0 表示 string 类型的 key，1 表示 number 类型的 key
-                    if (type.k === 1) {
+                    // k 的值：0 表示 number 类型的 key，"" 表示 string 类型的 key
+                    if (typeof type.k === 'number' && type.k === 0) {
                         keyType = 'number';
+                    } else if (typeof type.k === 'string' && type.k === '') {
+                        keyType = 'string';
                     }
 
                     if (Array.isArray(valueType)) {
@@ -365,9 +413,11 @@ export class ProtoGenerator {
                     if (Object.prototype.hasOwnProperty.call(type, "v")) {
                         const valueType = type.v;
                         let keyType = 'string';
-                        // k 的值：0 表示 string 类型的 key，1 表示 number 类型的 key
-                        if (type.k === 1) {
+                        // k 的值：0 表示 number 类型的 key，"" 表示 string 类型的 key
+                        if (typeof type.k === 'number' && type.k === 0) {
                             keyType = 'number';
+                        } else if (typeof type.k === 'string' && type.k === '') {
+                            keyType = 'string';
                         }
 
                         if (Array.isArray(valueType)) {

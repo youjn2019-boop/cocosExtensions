@@ -2706,6 +2706,49 @@ var ProtoGenerator = class {
         let elementType;
         if (Array.isArray(elementArray)) {
           elementType = elementArray[0];
+        } else if (typeof elementArray === "object" && elementArray !== null) {
+          if (Object.prototype.hasOwnProperty.call(elementArray, "v")) {
+            const valueType = elementArray.v;
+            let keyType = "string";
+            if (typeof elementArray.k === "number" && elementArray.k === 0) {
+              keyType = "number";
+            } else if (typeof elementArray.k === "string" && elementArray.k === "") {
+              keyType = "string";
+            }
+            if (typeof valueType === "number") {
+              return { tsType: `Record<${keyType}, number>[]`, description };
+            } else if (typeof valueType === "string") {
+              if (!valueType) {
+                return { tsType: `Record<${keyType}, string>[]`, description };
+              } else {
+                const classProtocol2 = this.protocolMap.get(valueType);
+                if (classProtocol2 && classProtocol2.p) {
+                  usedProtocols.add(valueType);
+                  return { tsType: `Record<${keyType}, ${valueType}>[]`, description };
+                } else {
+                  return { tsType: `Record<${keyType}, ${valueType}>[]`, description };
+                }
+              }
+            } else if (Array.isArray(valueType)) {
+              const mapArrValueType = valueType[0];
+              if (typeof mapArrValueType === "number") {
+                return { tsType: `Record<${keyType}, number[]>[]`, description };
+              } else if (typeof mapArrValueType === "string") {
+                if (!mapArrValueType) {
+                  return { tsType: `Record<${keyType}, string[]>[]`, description };
+                } else {
+                  const classProtocol2 = this.protocolMap.get(mapArrValueType);
+                  if (classProtocol2 && classProtocol2.p) {
+                    usedProtocols.add(mapArrValueType);
+                    return { tsType: `Record<${keyType}, ${mapArrValueType}[]>[]`, description };
+                  } else {
+                    return { tsType: `Record<${keyType}, ${mapArrValueType}[]>[]`, description };
+                  }
+                }
+              }
+            }
+          }
+          return { tsType: "any", description: "" };
         } else {
           if (typeof elementArray === "number") {
             return { tsType: "number[]", description };
@@ -2741,8 +2784,10 @@ var ProtoGenerator = class {
         if (Object.prototype.hasOwnProperty.call(type, "v")) {
           const valueType = type.v;
           let keyType = "string";
-          if (type.k === 1) {
+          if (typeof type.k === "number" && type.k === 0) {
             keyType = "number";
+          } else if (typeof type.k === "string" && type.k === "") {
+            keyType = "string";
           }
           if (Array.isArray(valueType)) {
             const mapArrValueType = valueType[0];
@@ -2944,8 +2989,10 @@ var ProtoGenerator = class {
           if (Object.prototype.hasOwnProperty.call(type, "v")) {
             const valueType = type.v;
             let keyType = "string";
-            if (type.k === 1) {
+            if (typeof type.k === "number" && type.k === 0) {
               keyType = "number";
+            } else if (typeof type.k === "string" && type.k === "") {
+              keyType = "string";
             }
             if (Array.isArray(valueType)) {
               const mapArrValueType = valueType[0];
