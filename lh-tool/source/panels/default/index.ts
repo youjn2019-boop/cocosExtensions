@@ -471,24 +471,6 @@ module.exports = Editor.Panel.define({
                             console.log('资源目录:', config.heroSourceDir);
                             console.log('目标目录:', config.heroTargetDir);
 
-                            // 清理目标目录（保留.meta文件）
-                            const fs = require('fs');
-                            const path = require('path');
-
-                            if (fs.existsSync(config.heroTargetDir)) {
-                                console.log('清理目标目录中的非meta文件...');
-                                const files = fs.readdirSync(config.heroTargetDir);
-                                for (const file of files) {
-                                    if (!file.endsWith('.meta')) {
-                                        const filePath = path.join(config.heroTargetDir, file);
-                                        if (fs.statSync(filePath).isFile()) {
-                                            fs.unlinkSync(filePath);
-                                            console.log('删除:', file);
-                                        }
-                                    }
-                                }
-                            }
-
                             // 执行复制逻辑
                             const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
                             const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
@@ -523,24 +505,6 @@ module.exports = Editor.Panel.define({
                             console.log('开始复制技能特效...');
                             console.log('资源目录:', config.skillSourceDir);
                             console.log('目标目录:', config.skillTargetDir);
-
-                            // 清理目标目录（保留.meta文件）
-                            const fs = require('fs');
-                            const path = require('path');
-
-                            if (fs.existsSync(config.skillTargetDir)) {
-                                console.log('清理目标目录中的非meta文件...');
-                                const files = fs.readdirSync(config.skillTargetDir);
-                                for (const file of files) {
-                                    if (!file.endsWith('.meta')) {
-                                        const filePath = path.join(config.skillTargetDir, file);
-                                        if (fs.statSync(filePath).isFile()) {
-                                            fs.unlinkSync(filePath);
-                                            console.log('删除:', file);
-                                        }
-                                    }
-                                }
-                            }
 
                             // 执行复制逻辑
                             const { copySpineFiles } = require(join(extensionRoot, 'dist/copySpine/copy-spine'));
@@ -588,20 +552,6 @@ module.exports = Editor.Panel.define({
                             console.log('资源目录:', config.heroSourceDir);
                             console.log('目标目录:', config.heroTargetDir);
 
-                            if (fs.existsSync(config.heroTargetDir)) {
-                                console.log('清理目标目录中的非meta文件...');
-                                const files = fs.readdirSync(config.heroTargetDir);
-                                for (const file of files) {
-                                    if (!file.endsWith('.meta')) {
-                                        const filePath = path.join(config.heroTargetDir, file);
-                                        if (fs.statSync(filePath).isFile()) {
-                                            fs.unlinkSync(filePath);
-                                            console.log('删除:', file);
-                                        }
-                                    }
-                                }
-                            }
-
                             const heroResult = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
                             totalFileCount += heroResult?.fileCount || 0;
                             console.log('✅ 英雄模型复制完成!');
@@ -611,20 +561,6 @@ module.exports = Editor.Panel.define({
                             console.log('========== 复制技能特效 ==========');
                             console.log('资源目录:', config.skillSourceDir);
                             console.log('目标目录:', config.skillTargetDir);
-
-                            if (fs.existsSync(config.skillTargetDir)) {
-                                console.log('清理目标目录中的非meta文件...');
-                                const files = fs.readdirSync(config.skillTargetDir);
-                                for (const file of files) {
-                                    if (!file.endsWith('.meta')) {
-                                        const filePath = path.join(config.skillTargetDir, file);
-                                        if (fs.statSync(filePath).isFile()) {
-                                            fs.unlinkSync(filePath);
-                                            console.log('删除:', file);
-                                        }
-                                    }
-                                }
-                            }
 
                             const skillResult = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
                             totalFileCount += skillResult?.fileCount || 0;

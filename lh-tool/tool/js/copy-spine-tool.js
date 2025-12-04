@@ -125,7 +125,6 @@ async function main() {
             console.log('目标路径:', heroTarget);
             console.log('');
 
-            cleanTargetDir(heroTarget);
             await copySpine(heroSource, heroTarget);
             console.log('');
         } else {
@@ -140,7 +139,6 @@ async function main() {
             console.log('目标路径:', skillTarget);
             console.log('');
 
-            cleanTargetDir(skillTarget);
             await copySpine(skillSource, skillTarget);
             console.log('');
         } else {

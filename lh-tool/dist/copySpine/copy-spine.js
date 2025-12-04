@@ -64,30 +64,6 @@ function copyFile(source, target) {
     readStream.pipe(writeStream);
   });
 }
-async function checkAndCopyResources(skelFilePath, targetPath) {
-  try {
-    const baseName = (0, import_path.basename)(skelFilePath, ".skel");
-    const dirName = (0, import_path.dirname)(skelFilePath);
-    const atlasFilePath = (0, import_path.join)(dirName, `${baseName}.atlas`);
-    const pngFilePath = (0, import_path.join)(dirName, `${baseName}.png`);
-    if ((0, import_fs.existsSync)(atlasFilePath) && (0, import_fs.existsSync)(pngFilePath)) {
-      const targetSkelPath = (0, import_path.join)(targetPath, `${baseName}.skel`);
-      const targetAtlasPath = (0, import_path.join)(targetPath, `${baseName}.atlas`);
-      const targetPngPath = (0, import_path.join)(targetPath, `${baseName}.png`);
-      await copyFile(skelFilePath, targetSkelPath);
-      await copyFile(atlasFilePath, targetAtlasPath);
-      await copyFile(pngFilePath, targetPngPath);
-      return true;
-    } else {
-      console.log(`\u8D44\u6E90\u4E0D\u5B8C\u6574\uFF0C\u8DF3\u8FC7: ${baseName}`);
-      console.log(`  \u7F3A\u5C11\u6587\u4EF6: ${!(0, import_fs.existsSync)(atlasFilePath) ? atlasFilePath : ""} ${!(0, import_fs.existsSync)(pngFilePath) ? pngFilePath : ""}`);
-      return false;
-    }
-  } catch (error) {
-    console.error(`\u5904\u7406\u6587\u4EF6\u65F6\u51FA\u9519: ${skelFilePath}`, error);
-    return false;
-  }
-}
 async function copySpineFiles(sourcePath, targetPath) {
   try {
     console.log("\u5F00\u59CB\u590D\u5236\u9AA8\u9ABC\u52A8\u753B\u8D44\u6E90...");
@@ -98,15 +74,69 @@ async function copySpineFiles(sourcePath, targetPath) {
     }
     const skelFiles = await findSkelFiles(sourcePath);
     console.log(`\u627E\u5230 ${skelFiles.length} \u4E2Askel\u6587\u4EF6`);
-    let successCount = 0;
+    const copyOperations = [];
+    const filesToCopy = /* @__PURE__ */ new Set();
     for (const skelFile of skelFiles) {
-      const success = await checkAndCopyResources(skelFile, targetPath);
-      if (success) {
-        successCount++;
+      const baseName = (0, import_path.basename)(skelFile, ".skel");
+      const dirName = (0, import_path.dirname)(skelFile);
+      const atlasFilePath = (0, import_path.join)(dirName, `${baseName}.atlas`);
+      const pngFilePath = (0, import_path.join)(dirName, `${baseName}.png`);
+      if ((0, import_fs.existsSync)(atlasFilePath) && (0, import_fs.existsSync)(pngFilePath)) {
+        filesToCopy.add(`${baseName}.skel`);
+        filesToCopy.add(`${baseName}.atlas`);
+        filesToCopy.add(`${baseName}.png`);
+        copyOperations.push(async () => {
+          try {
+            await copyFile(skelFile, (0, import_path.join)(targetPath, `${baseName}.skel`));
+            await copyFile(atlasFilePath, (0, import_path.join)(targetPath, `${baseName}.atlas`));
+            await copyFile(pngFilePath, (0, import_path.join)(targetPath, `${baseName}.png`));
+            return true;
+          } catch (error) {
+            console.error(`\u5904\u7406\u6587\u4EF6\u65F6\u51FA\u9519: ${skelFile}`, error);
+            return false;
+          }
+        });
+      } else {
+        console.log(`\u8D44\u6E90\u4E0D\u5B8C\u6574\uFF0C\u8DF3\u8FC7: ${baseName}`);
+        console.log(`  \u7F3A\u5C11\u6587\u4EF6: ${!(0, import_fs.existsSync)(atlasFilePath) ? atlasFilePath : ""} ${!(0, import_fs.existsSync)(pngFilePath) ? pngFilePath : ""}`);
       }
     }
-    console.log(`\u590D\u5236\u5B8C\u6210\uFF0C\u6210\u529F\u590D\u5236 ${successCount} \u7EC4\u8D44\u6E90`);
-    return { fileCount: successCount * 3, success: true };
+    if ((0, import_fs.existsSync)(targetPath)) {
+      const targetFiles = await new Promise((resolve, reject) => {
+        (0, import_fs.readdir)(targetPath, (err, files) => {
+          if (err)
+            reject(err);
+          else
+            resolve(files);
+        });
+      });
+      const deletePromises = targetFiles.filter((file) => !file.endsWith(".meta") && !filesToCopy.has(file)).map((file) => {
+        const filePath = (0, import_path.join)(targetPath, file);
+        return new Promise((resolve, reject) => {
+          (0, import_fs.unlink)(filePath, (err) => {
+            if (err)
+              reject(err);
+            else {
+              console.log(`\u5220\u9664\u4E0D\u9700\u8981\u7684\u6587\u4EF6: ${file}`);
+              resolve();
+            }
+          });
+        });
+      });
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        console.log(`\u5171\u5220\u9664 ${deletePromises.length} \u4E2A\u4E0D\u9700\u8981\u7684\u6587\u4EF6`);
+      }
+    }
+    if (copyOperations.length > 0) {
+      const results = await Promise.all(copyOperations.map((operation) => operation()));
+      const successCount = results.filter(Boolean).length;
+      console.log(`\u590D\u5236\u5B8C\u6210\uFF0C\u6210\u529F\u590D\u5236 ${successCount} \u7EC4\u8D44\u6E90`);
+      return { fileCount: successCount * 3, success: true };
+    } else {
+      console.log("\u6CA1\u6709\u9700\u8981\u590D\u5236\u7684\u8D44\u6E90");
+      return { fileCount: 0, success: true };
+    }
   } catch (error) {
     console.error("\u590D\u5236\u8D44\u6E90\u5931\u8D25:", error);
     return { fileCount: 0, success: false };

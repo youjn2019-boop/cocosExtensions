@@ -56974,21 +56974,6 @@ module.exports = Editor.Panel.define({
               console.log("\u5F00\u59CB\u590D\u5236\u82F1\u96C4\u6A21\u578B...");
               console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
               console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
-              const fs = require("fs");
-              const path = require("path");
-              if (fs.existsSync(config.heroTargetDir)) {
-                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-                const files = fs.readdirSync(config.heroTargetDir);
-                for (const file of files) {
-                  if (!file.endsWith(".meta")) {
-                    const filePath = path.join(config.heroTargetDir, file);
-                    if (fs.statSync(filePath).isFile()) {
-                      fs.unlinkSync(filePath);
-                      console.log("\u5220\u9664:", file);
-                    }
-                  }
-                }
-              }
               const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
               const result = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
               console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
@@ -57014,21 +56999,6 @@ module.exports = Editor.Panel.define({
               console.log("\u5F00\u59CB\u590D\u5236\u6280\u80FD\u7279\u6548...");
               console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
               console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
-              const fs = require("fs");
-              const path = require("path");
-              if (fs.existsSync(config.skillTargetDir)) {
-                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-                const files = fs.readdirSync(config.skillTargetDir);
-                for (const file of files) {
-                  if (!file.endsWith(".meta")) {
-                    const filePath = path.join(config.skillTargetDir, file);
-                    if (fs.statSync(filePath).isFile()) {
-                      fs.unlinkSync(filePath);
-                      console.log("\u5220\u9664:", file);
-                    }
-                  }
-                }
-              }
               const { copySpineFiles } = require((0, import_path.join)(extensionRoot, "dist/copySpine/copy-spine"));
               const result = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
               console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210! \u5171\u590D\u5236", (result == null ? void 0 : result.fileCount) || 0, "\u4E2A\u6587\u4EF6");
@@ -57064,19 +57034,6 @@ module.exports = Editor.Panel.define({
               console.log("========== \u590D\u5236\u82F1\u96C4\u6A21\u578B ==========");
               console.log("\u8D44\u6E90\u76EE\u5F55:", config.heroSourceDir);
               console.log("\u76EE\u6807\u76EE\u5F55:", config.heroTargetDir);
-              if (fs.existsSync(config.heroTargetDir)) {
-                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-                const files = fs.readdirSync(config.heroTargetDir);
-                for (const file of files) {
-                  if (!file.endsWith(".meta")) {
-                    const filePath = path.join(config.heroTargetDir, file);
-                    if (fs.statSync(filePath).isFile()) {
-                      fs.unlinkSync(filePath);
-                      console.log("\u5220\u9664:", file);
-                    }
-                  }
-                }
-              }
               const heroResult = await copySpineFiles(config.heroSourceDir, config.heroTargetDir);
               totalFileCount += (heroResult == null ? void 0 : heroResult.fileCount) || 0;
               console.log("\u2705 \u82F1\u96C4\u6A21\u578B\u590D\u5236\u5B8C\u6210!");
@@ -57084,19 +57041,6 @@ module.exports = Editor.Panel.define({
               console.log("========== \u590D\u5236\u6280\u80FD\u7279\u6548 ==========");
               console.log("\u8D44\u6E90\u76EE\u5F55:", config.skillSourceDir);
               console.log("\u76EE\u6807\u76EE\u5F55:", config.skillTargetDir);
-              if (fs.existsSync(config.skillTargetDir)) {
-                console.log("\u6E05\u7406\u76EE\u6807\u76EE\u5F55\u4E2D\u7684\u975Emeta\u6587\u4EF6...");
-                const files = fs.readdirSync(config.skillTargetDir);
-                for (const file of files) {
-                  if (!file.endsWith(".meta")) {
-                    const filePath = path.join(config.skillTargetDir, file);
-                    if (fs.statSync(filePath).isFile()) {
-                      fs.unlinkSync(filePath);
-                      console.log("\u5220\u9664:", file);
-                    }
-                  }
-                }
-              }
               const skillResult = await copySpineFiles(config.skillSourceDir, config.skillTargetDir);
               totalFileCount += (skillResult == null ? void 0 : skillResult.fileCount) || 0;
               console.log("\u2705 \u6280\u80FD\u7279\u6548\u590D\u5236\u5B8C\u6210!");

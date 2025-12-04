@@ -5,9 +5,8 @@
 // 3：如果存在，将skel, atlas, png文件复制到目标路径
 // 4：如果不存在，继续检查下一个skel
 
-import { readdir, existsSync, mkdirSync, createReadStream, createWriteStream } from 'fs';
-import { join, dirname, basename, extname } from 'path';
-import { Dirent } from 'fs';
+import { createReadStream, createWriteStream, Dirent, existsSync, mkdirSync, readdir, unlink } from 'fs';
+import { basename, dirname, extname, join } from 'path';
 
 // 配置路径 (相对于当前脚本文件)
 // 默认路径
@@ -133,17 +132,83 @@ export async function copySpineFiles(sourcePath: string, targetPath: string): Pr
         const skelFiles = await findSkelFiles(sourcePath);
         console.log(`找到 ${skelFiles.length} 个skel文件`);
 
-        // 检查并复制每个资源
-        let successCount = 0;
+        // 预处理：检查每个资源是否完整，并收集需要复制的文件对
+        const copyOperations: Array<() => Promise<boolean>> = [];
+        const filesToCopy: Set<string> = new Set();
+        
         for (const skelFile of skelFiles) {
-            const success = await checkAndCopyResources(skelFile, targetPath);
-            if (success) {
-                successCount++;
+            const baseName = basename(skelFile, '.skel');
+            const dirName = dirname(skelFile);
+            
+            // 检查资源完整性
+            const atlasFilePath = join(dirName, `${baseName}.atlas`);
+            const pngFilePath = join(dirName, `${baseName}.png`);
+            
+            if (existsSync(atlasFilePath) && existsSync(pngFilePath)) {
+                // 收集需要复制的文件名
+                filesToCopy.add(`${baseName}.skel`);
+                filesToCopy.add(`${baseName}.atlas`);
+                filesToCopy.add(`${baseName}.png`);
+                
+                // 创建复制操作函数
+                copyOperations.push(async () => {
+                    try {
+                        await copyFile(skelFile, join(targetPath, `${baseName}.skel`));
+                        await copyFile(atlasFilePath, join(targetPath, `${baseName}.atlas`));
+                        await copyFile(pngFilePath, join(targetPath, `${baseName}.png`));
+                        return true;
+                    } catch (error) {
+                        console.error(`处理文件时出错: ${skelFile}`, error);
+                        return false;
+                    }
+                });
+            } else {
+                console.log(`资源不完整，跳过: ${baseName}`);
+                console.log(`  缺少文件: ${!existsSync(atlasFilePath) ? atlasFilePath : ''} ${!existsSync(pngFilePath) ? pngFilePath : ''}`);
             }
         }
 
-        console.log(`复制完成，成功复制 ${successCount} 组资源`);
-        return { fileCount: successCount * 3, success: true }; // 每组资源3个文件（skel, atlas, png）
+        // 异步删除不需要的文件
+        if (existsSync(targetPath)) {
+            const targetFiles = await new Promise<string[]>((resolve, reject) => {
+                readdir(targetPath, (err, files) => {
+                    if (err) reject(err);
+                    else resolve(files);
+                });
+            });
+            
+            const deletePromises = targetFiles
+                .filter(file => !file.endsWith('.meta') && !filesToCopy.has(file))
+                .map(file => {
+                    const filePath = join(targetPath, file);
+                    return new Promise<void>((resolve, reject) => {
+                        unlink(filePath, (err) => {
+                            if (err) reject(err);
+                            else {
+                                console.log(`删除不需要的文件: ${file}`);
+                                resolve();
+                            }
+                        });
+                    });
+                });
+            
+            if (deletePromises.length > 0) {
+                await Promise.all(deletePromises);
+                console.log(`共删除 ${deletePromises.length} 个不需要的文件`);
+            }
+        }
+
+        // 并行执行复制操作
+        if (copyOperations.length > 0) {
+            const results = await Promise.all(copyOperations.map(operation => operation()));
+            const successCount = results.filter(Boolean).length;
+            
+            console.log(`复制完成，成功复制 ${successCount} 组资源`);
+            return { fileCount: successCount * 3, success: true }; // 每组资源3个文件（skel, atlas, png）
+        } else {
+            console.log('没有需要复制的资源');
+            return { fileCount: 0, success: true };
+        }
     } catch (error) {
         console.error('复制资源失败:', error);
         return { fileCount: 0, success: false };
