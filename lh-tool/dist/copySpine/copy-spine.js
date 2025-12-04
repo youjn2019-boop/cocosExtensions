@@ -135,7 +135,18 @@ async function copySpineFiles(sourcePath, targetPath) {
       const updateProgress = () => {
         completedCount++;
         const progress = Math.round(completedCount / copyOperations.length * 100);
-        process.stdout.write(`\r\u590D\u5236\u8FDB\u5EA6: ${progress}% (${completedCount}/${copyOperations.length})`);
+        const progressText = `\u590D\u5236\u8FDB\u5EA6: ${progress}% (${completedCount}/${copyOperations.length})`;
+        try {
+          if (process.stdout.isTTY) {
+            process.stdout.write(`\r${progressText}`);
+          } else {
+            if (progress % 10 === 0 || completedCount === copyOperations.length) {
+              console.log(progressText);
+            }
+          }
+        } catch (error) {
+          console.log(progressText);
+        }
       };
       const results = await Promise.all(
         copyOperations.map(async (operation) => {

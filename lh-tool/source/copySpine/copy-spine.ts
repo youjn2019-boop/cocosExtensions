@@ -208,7 +208,22 @@ export async function copySpineFiles(sourcePath: string, targetPath: string): Pr
             const updateProgress = () => {
                 completedCount++;
                 const progress = Math.round((completedCount / copyOperations.length) * 100);
-                process.stdout.write(`\r复制进度: ${progress}% (${completedCount}/${copyOperations.length})`);
+                const progressText = `复制进度: ${progress}% (${completedCount}/${copyOperations.length})`;
+                
+                try {
+                    // 尝试使用单行更新（仅在支持TTY的环境下）
+                    if (process.stdout.isTTY) {
+                        process.stdout.write(`\r${progressText}`);
+                    } else {
+                        // 不支持TTY时，每10%输出一次进度，避免刷屏
+                        if (progress % 10 === 0 || completedCount === copyOperations.length) {
+                            console.log(progressText);
+                        }
+                    }
+                } catch (error) {
+                    // 发生错误时使用普通输出
+                    console.log(progressText);
+                }
             };
             
             // 执行所有复制操作
