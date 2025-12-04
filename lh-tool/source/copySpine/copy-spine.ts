@@ -216,8 +216,8 @@ export async function copySpineFiles(sourcePath: string, targetPath: string): Pr
                     if (process.stdout.isTTY) {
                         process.stdout.write(`\r${progressText}`);
                     } else {
-                        // 不支持TTY时，只在进度真正变化时输出，避免重复显示相同进度
-                        if (progress !== lastProgress || completedCount === copyOperations.length) {
+                        // 不支持TTY时，每10%或完成时输出一次进度
+                        if ((progress % 10 === 0 && progress !== lastProgress) || completedCount === copyOperations.length) {
                             console.log(progressText);
                             lastProgress = progress;
                         }

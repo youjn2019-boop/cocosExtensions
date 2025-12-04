@@ -141,7 +141,7 @@ async function copySpineFiles(sourcePath, targetPath) {
           if (process.stdout.isTTY) {
             process.stdout.write(`\r${progressText}`);
           } else {
-            if (progress !== lastProgress || completedCount === copyOperations.length) {
+            if (progress % 10 === 0 && progress !== lastProgress || completedCount === copyOperations.length) {
               console.log(progressText);
               lastProgress = progress;
             }
