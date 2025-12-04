@@ -198,11 +198,32 @@ export async function copySpineFiles(sourcePath: string, targetPath: string): Pr
             }
         }
 
-        // 并行执行复制操作
+        // 执行复制操作并显示进度
         if (copyOperations.length > 0) {
-            const results = await Promise.all(copyOperations.map(operation => operation()));
-            const successCount = results.filter(Boolean).length;
+            console.log(`开始复制 ${copyOperations.length} 组资源...`);
+            let completedCount = 0;
+            let successCount = 0;
             
+            // 创建进度更新函数
+            const updateProgress = () => {
+                completedCount++;
+                const progress = Math.round((completedCount / copyOperations.length) * 100);
+                process.stdout.write(`\r复制进度: ${progress}% (${completedCount}/${copyOperations.length})`);
+            };
+            
+            // 执行所有复制操作
+            const results = await Promise.all(
+                copyOperations.map(async (operation) => {
+                    const result = await operation();
+                    updateProgress();
+                    return result;
+                })
+            );
+            
+            // 换行，避免覆盖后续输出
+            console.log();
+            
+            successCount = results.filter(Boolean).length;
             console.log(`复制完成，成功复制 ${successCount} 组资源`);
             return { fileCount: successCount * 3, success: true }; // 每组资源3个文件（skel, atlas, png）
         } else {

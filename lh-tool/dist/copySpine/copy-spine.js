@@ -129,8 +129,23 @@ async function copySpineFiles(sourcePath, targetPath) {
       }
     }
     if (copyOperations.length > 0) {
-      const results = await Promise.all(copyOperations.map((operation) => operation()));
-      const successCount = results.filter(Boolean).length;
+      console.log(`\u5F00\u59CB\u590D\u5236 ${copyOperations.length} \u7EC4\u8D44\u6E90...`);
+      let completedCount = 0;
+      let successCount = 0;
+      const updateProgress = () => {
+        completedCount++;
+        const progress = Math.round(completedCount / copyOperations.length * 100);
+        process.stdout.write(`\r\u590D\u5236\u8FDB\u5EA6: ${progress}% (${completedCount}/${copyOperations.length})`);
+      };
+      const results = await Promise.all(
+        copyOperations.map(async (operation) => {
+          const result = await operation();
+          updateProgress();
+          return result;
+        })
+      );
+      console.log();
+      successCount = results.filter(Boolean).length;
       console.log(`\u590D\u5236\u5B8C\u6210\uFF0C\u6210\u529F\u590D\u5236 ${successCount} \u7EC4\u8D44\u6E90`);
       return { fileCount: successCount * 3, success: true };
     } else {
