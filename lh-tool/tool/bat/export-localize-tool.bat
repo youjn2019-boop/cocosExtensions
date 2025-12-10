@@ -18,7 +18,7 @@ REM 导出多语言目录
 set LANG_DIR=
 
 REM 是否格式化（true 或 false）
-set FORMAT=
+set FORMAT=false
 
 REM ========================================
 REM 构建参数
