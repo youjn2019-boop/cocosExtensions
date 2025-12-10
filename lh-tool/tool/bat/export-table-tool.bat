@@ -28,7 +28,7 @@ REM 临时目录
 set TEMP_DIR=
 
 REM 导出模式
-set EXPORT_MODE=
+set EXPORT_MODE="Client"
 
 REM ========================================
 REM 执行导出

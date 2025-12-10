@@ -11,9 +11,6 @@ REM ========================================
 REM 配置参数（可选，如果不设置则使用 config.json 中的配置）
 REM ========================================
 
-REM 打表工具路径
-set EXE_FILE=
-
 REM 表格数据目录
 set DATA_DIR=
 
@@ -28,10 +25,6 @@ REM 构建参数
 REM ========================================
 
 set PARAMS=
-
-if not "%EXE_FILE%"=="" (
-    set PARAMS=%PARAMS% --exeFile "%EXE_FILE%"
-)
 
 if not "%DATA_DIR%"=="" (
     set PARAMS=%PARAMS% --dataDir "%DATA_DIR%"

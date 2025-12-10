@@ -17,9 +17,7 @@ const cmdConfig = {};
 
 for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--exeFile' && i + 1 < args.length) {
-        cmdConfig.exeFile = args[++i];
-    } else if (arg === '--dataDir' && i + 1 < args.length) {
+    if (arg === '--dataDir' && i + 1 < args.length) {
         cmdConfig.dataDir = args[++i];
     } else if (arg === '--langDir' && i + 1 < args.length) {
         cmdConfig.langDir = args[++i];
@@ -47,7 +45,6 @@ const finalConfig = {
 };
 
 console.log('使用的配置:');
-console.log('  - 打表工具:', finalConfig.exeFile || '(未配置)');
 console.log('  - 表格数据目录:', finalConfig.dataDir || '(未配置)');
 console.log('  - 导出多语言目录:', finalConfig.langDir || '(未配置)');
 console.log('  - 是否格式化:', finalConfig.formatEnabled ? '是' : '否');
