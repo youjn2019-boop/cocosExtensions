@@ -29,13 +29,15 @@ for (let i = 0; i < args.length; i++) {
         cmdConfig.tempDir = args[++i];
     } else if (arg === '--exportMode' && i + 1 < args.length) {
         cmdConfig.exportMode = args[++i];
+    } else if (arg === '--only-use-bat-config' && i + 1 < args.length) {
+        cmdConfig.onlyUseBatConfig = args[++i] === 'true';
     }
 }
 
 // 读取配置文件
 const configPath = path.join(extensionRoot, 'tool/config/config.json');
 let fileConfig = {};
-if (fs.existsSync(configPath)) {
+if (!cmdConfig.onlyUseBatConfig && fs.existsSync(configPath)) {
     try {
         const configContent = fs.readFileSync(configPath, 'utf-8');
         fileConfig = JSON.parse(configContent);

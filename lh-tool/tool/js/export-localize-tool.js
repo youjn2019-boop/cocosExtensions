@@ -23,18 +23,22 @@ for (let i = 0; i < args.length; i++) {
         cmdConfig.langDir = args[++i];
     } else if (arg === '--format' && i + 1 < args.length) {
         cmdConfig.formatEnabled = args[++i] === 'true';
+    } else if (arg === '--only-use-bat-config' && i + 1 < args.length) {
+        cmdConfig.onlyUseBatConfig = args[++i] === 'true';
     }
 }
 
 // 读取配置文件
-const configPath = path.join(extensionRoot, 'tool/config/config.json');
 let fileConfig = {};
-if (fs.existsSync(configPath)) {
-    try {
-        const configContent = fs.readFileSync(configPath, 'utf-8');
-        fileConfig = JSON.parse(configContent);
-    } catch (error) {
-        console.warn('读取配置文件失败:', error.message);
+if (!cmdConfig.onlyUseBatConfig) {
+    const configPath = path.join(extensionRoot, 'tool/config/config.json');
+    if (fs.existsSync(configPath)) {
+        try {
+            const configContent = fs.readFileSync(configPath, 'utf-8');
+            fileConfig = JSON.parse(configContent);
+        } catch (error) {
+            console.warn('读取配置文件失败:', error.message);
+        }
     }
 }
 

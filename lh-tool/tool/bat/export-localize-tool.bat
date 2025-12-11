@@ -20,6 +20,9 @@ set LANG_DIR=
 REM 是否格式化（true 或 false）
 set FORMAT=false
 
+REM 是否仅使用bat中设置的参数，不读取config.json文件 (true/false)
+set ONLY_USE_BAT_CONFIG=false
+
 REM ========================================
 REM 构建参数
 REM ========================================
@@ -37,6 +40,8 @@ if not "%LANG_DIR%"=="" (
 if not "%FORMAT%"=="" (
     set PARAMS=%PARAMS% --format %FORMAT%
 )
+
+if "%ONLY_USE_BAT_CONFIG%"=="true" set PARAMS=%PARAMS% --only-use-bat-config true
 
 REM 执行导出
 node tool/js/export-localize-tool.js%PARAMS%

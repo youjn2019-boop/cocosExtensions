@@ -94,6 +94,7 @@ async function main() {
     let skillTarget = '';
 
     // 解析命令行参数
+    let onlyUseBatConfig = false;
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--hero-source' && i + 1 < args.length) {
             heroSource = args[i + 1];
@@ -107,15 +108,20 @@ async function main() {
         } else if (args[i] === '--skill-target' && i + 1 < args.length) {
             skillTarget = args[i + 1];
             i++;
+        } else if (args[i] === '--only-use-bat-config' && i + 1 < args.length) {
+            onlyUseBatConfig = args[i + 1] === 'true';
+            i++;
         }
     }
 
-    // 如果参数为空，从 config.json 读取
-    const config = readConfig();
-    if (!heroSource) heroSource = config.heroSourceDir || '';
-    if (!heroTarget) heroTarget = config.heroTargetDir || '';
-    if (!skillSource) skillSource = config.skillSourceDir || '';
-    if (!skillTarget) skillTarget = config.skillTargetDir || '';
+    // 如果参数为空且不是仅使用bat配置，则从 config.json 读取
+    if (!onlyUseBatConfig) {
+        const config = readConfig();
+        if (!heroSource) heroSource = config.heroSourceDir || '';
+        if (!heroTarget) heroTarget = config.heroTargetDir || '';
+        if (!skillSource) skillSource = config.skillSourceDir || '';
+        if (!skillTarget) skillTarget = config.skillTargetDir || '';
+    }
 
     try {
         // 复制英雄模型

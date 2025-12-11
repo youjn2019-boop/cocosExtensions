@@ -30,6 +30,9 @@ set TEMP_DIR=
 REM 导出模式
 set EXPORT_MODE="Client"
 
+REM 是否仅使用bat中设置的参数，不读取config.json文件 (true/false)
+set ONLY_USE_BAT_CONFIG=false
+
 REM ========================================
 REM 执行导出
 REM Execute export
@@ -42,6 +45,7 @@ if not "%CODE_DIR%"=="" set PARAMS=%PARAMS% --codeDir %CODE_DIR%
 if not "%EXPORT_DATA_DIR%"=="" set PARAMS=%PARAMS% --exportDataDir %EXPORT_DATA_DIR%
 if not "%TEMP_DIR%"=="" set PARAMS=%PARAMS% --tempDir %TEMP_DIR%
 if not "%EXPORT_MODE%"=="" set PARAMS=%PARAMS% --exportMode %EXPORT_MODE%
+if "%ONLY_USE_BAT_CONFIG%"=="true" set PARAMS=%PARAMS% --only-use-bat-config true
 
 node tool\js\export-table.js %PARAMS%
 

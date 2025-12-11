@@ -20,6 +20,9 @@ REM 技能特效
 set SKILL_SOURCE=
 set SKILL_TARGET=
 
+REM 是否仅使用bat中设置的参数，不读取config.json文件 (true/false)
+set ONLY_USE_BAT_CONFIG=false
+
 REM ========================================
 REM 执行复制
 REM Execute copy
@@ -30,6 +33,7 @@ if not "%HERO_SOURCE%"=="" set PARAMS=%PARAMS% --hero-source %HERO_SOURCE%
 if not "%HERO_TARGET%"=="" set PARAMS=%PARAMS% --hero-target %HERO_TARGET%
 if not "%SKILL_SOURCE%"=="" set PARAMS=%PARAMS% --skill-source %SKILL_SOURCE%
 if not "%SKILL_TARGET%"=="" set PARAMS=%PARAMS% --skill-target %SKILL_TARGET%
+if "%ONLY_USE_BAT_CONFIG%"=="true" set PARAMS=%PARAMS% --only-use-bat-config true
 
 node tool\js\copy-spine-tool.js %PARAMS%
 
