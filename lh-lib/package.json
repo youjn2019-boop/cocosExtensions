@@ -1,0 +1,52 @@
+{
+    "$schema": "./@types/schema/package/index.json",
+    "package_version": 2,
+    "name": "lh-lib",
+    "version": "1.0.0",
+    "author": "Cocos Creator",
+    "editor": ">=3.8.6",
+    "scripts": {
+        "preinstall": "node ./scripts/preinstall.js",
+        "build": "npx tsc",
+        "rollup-build": "npx rollup -c rollup.config.js"
+    },
+    "description": "i18n:lh-lib.description",
+    "main": "./dist/main.js",
+    "dependencies": {
+        "fs-extra": "^10.0.0"
+    },
+    "devDependencies": {
+        "@cocos/creator-types": "^3.8.6",
+        "@rollup/plugin-commonjs": "^28.0.6",
+        "@rollup/plugin-multi-entry": "^6.0.1",
+        "@rollup/plugin-node-resolve": "^16.0.1",
+        "@rollup/plugin-terser": "^0.4.4",
+        "@types/fs-extra": "^9.0.5",
+        "@types/node": "^18.19.123",
+        "rollup-plugin-dts": "^6.2.3",
+        "rollup-plugin-postcss": "^4.0.2",
+        "rollup-plugin-typescript2": "^0.36.0",
+        "tslib": "^2.8.1",
+        "typescript": "^5.9.2"
+    },
+    "panels": {
+        "default": {
+            "title": "lh-lib Default Panel",
+            "type": "dockable",
+            "main": "dist/panels/default",
+            "size": {
+                "min-width": 400,
+                "min-height": 300,
+                "width": 1024,
+                "height": 600
+            }
+        }
+    },
+    "contributions": {
+        "asset-db": {
+            "mount": {
+                "path": "./assets"
+            }
+        }
+    }
+}

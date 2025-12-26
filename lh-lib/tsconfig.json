@@ -1,0 +1,21 @@
+{
+    "extends": "./base.tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "./",
+        "strict": false,
+        "module": "ESNext",
+        "inlineSourceMap": true,
+        "inlineSources": false,
+        "types": [
+            "node",
+            "@cocos/creator-types/editor",
+            "@cocos/creator-types/engine",
+        ]
+    },
+    "exclude": [
+        "rollup.config.ts",
+        "dist/**",
+        "node_modules"
+    ]
+}
