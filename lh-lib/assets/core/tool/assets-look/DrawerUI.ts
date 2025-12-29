@@ -90,7 +90,7 @@ class DrawerUI {
             #node-inspector-drawer {
                 position: fixed;
                 top: 0;
-                right: 0;
+                left: 0;
                 height: 100vh;
                 background: #2d2d2d;
                 border-right: 1px solid #444;

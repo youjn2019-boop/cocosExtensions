@@ -90,7 +90,7 @@ class RightDrawerUI {
             #resource-inspector-drawer {
                 position: fixed;
                 top: 0;
-                left: 0;
+                right: 0;
                 height: 100vh;
                 background: #2d2d2d;
                 border-left: 1px solid #444;

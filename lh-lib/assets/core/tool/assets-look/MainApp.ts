@@ -34,13 +34,13 @@ class MainApp {
     private createUI(): void {
         // 创建左侧抽屉（节点调试器）
         this.drawerUI.create();
-        
-        // // 创建右侧抽屉（资源监控器）
-        // this.rightDrawerUI.create();
 
-        // // 在右侧抽屉中创建资源内存面板
-        // const rightContainer = this.rightDrawerUI.getContentContainer();
-        // this.resourceMemoryPanel.create(rightContainer);
+        // 创建右侧抽屉（资源监控器）
+        this.rightDrawerUI.create();
+
+        // 在右侧抽屉中创建资源内存面板
+        const rightContainer = this.rightDrawerUI.getContentContainer();
+        this.resourceMemoryPanel.create(rightContainer);
 
         // 在左侧抽屉中初始化节点管理器
         const leftContainer = this.drawerUI.getContentContainer();
@@ -103,15 +103,15 @@ class MainApp {
         if (this.nodeManager) {
             this.nodeManager.destroy();
         }
-        
+
         if (this.drawerUI) {
             this.drawerUI.destroy();
         }
-        
+
         if (this.rightDrawerUI) {
             this.rightDrawerUI.destroy();
         }
-        
+
         if (this.resourceMemoryPanel) {
             this.resourceMemoryPanel.destroy();
         }

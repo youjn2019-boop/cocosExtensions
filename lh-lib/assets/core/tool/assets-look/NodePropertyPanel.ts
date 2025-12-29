@@ -37,7 +37,8 @@ class NodePropertyPanel {
     private minHeight: number = 200;
     private maxHeight: number = 800;
     private currentNode: NodeData | null = null;
-    private propertyChangeCallback: ((key: string, value: any) => void) | null = null;
+    private _index: number = 0;
+    private propertyChangeCallback: ((key: string, value: any, propertyName?: string) => void) | null = null;
     private refreshNodeCallback: ((nodeData: NodeData) => NodeData | null) | null = null;
     private showTooltipCallback: ((text: string, element: HTMLElement) => void) | null = null;
 
@@ -48,13 +49,13 @@ class NodePropertyPanel {
     create(parent: HTMLElement): void {
         this.container = document.createElement('div');
         this.container.className = 'property-panel node-inspector-panel';
-        
+
         this.createHeader();
         this.createPropertiesContainer();
         this.createResizeHandle();
         this.bindResizeEvents();
         this.applyStyles();
-        
+
         parent.appendChild(this.container);
         this.displayEmptyState();
     }
@@ -112,7 +113,7 @@ class NodePropertyPanel {
         this.resizeHandle = document.createElement('div');
         this.resizeHandle.className = 'resize-handle';
         this.resizeHandle.title = '拖动调整高度';
-        
+
         this.container!.appendChild(this.resizeHandle);
     }
 
@@ -121,13 +122,13 @@ class NodePropertyPanel {
      */
     private bindResizeEvents(): void {
         if (!this.resizeHandle) return;
-        
+
         // 绑定鼠标按下事件
         this.resizeHandle.addEventListener('mousedown', (e: MouseEvent) => {
             this.startResizing(e);
         });
     }
-    
+
     /**
      * 开始调整大小
      */
@@ -135,23 +136,23 @@ class NodePropertyPanel {
         this.isResizing = true;
         this.startY = e.clientY;
         this.startHeight = this.container?.clientHeight || 0;
-        
+
         document.addEventListener('mousemove', this.handleResizing, { capture: true });
         document.addEventListener('mouseup', this.stopResizing, { capture: true });
         document.addEventListener('mouseleave', this.stopResizing);
         window.addEventListener('blur', this.stopResizing);
-        
+
         // 添加全局样式类
         document.body.classList.add('resizing-property-panel');
-        
+
         // 设置鼠标样式
         document.body.style.cursor = 'row-resize';
-        
+
         // 高亮手柄
         if (this.resizeHandle) {
             this.resizeHandle.style.background = 'rgba(0, 120, 212, 0.5)';
         }
-        
+
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -162,7 +163,7 @@ class NodePropertyPanel {
      */
     private handleResizing = (e: MouseEvent): void => {
         if (!this.isResizing || !this.container || !this.container.parentElement) return;
-        
+
         const deltaY = this.startY - e.clientY;
         const parentHeight = this.container.parentElement.clientHeight;
         const maxHeight = parentHeight - 50;
@@ -170,9 +171,9 @@ class NodePropertyPanel {
             this.minHeight,
             Math.min(maxHeight, this.startHeight + deltaY)
         );
-        
+
         this.container.style.height = `${newHeight}px`;
-        
+
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
@@ -190,13 +191,13 @@ class NodePropertyPanel {
             document.removeEventListener('mouseup', this.stopResizing, { capture: true });
             document.removeEventListener('mouseleave', this.stopResizing);
             window.removeEventListener('blur', this.stopResizing);
-            
+
             // 移除全局样式类
             document.body.classList.remove('resizing-property-panel');
-            
+
             // 恢复鼠标样式
             document.body.style.cursor = '';
-            
+
             // 恢复手柄样式
             if (this.resizeHandle) {
                 this.resizeHandle.style.background = '';
@@ -272,6 +273,32 @@ class NodePropertyPanel {
                 font-size: 12px;
                 border-bottom: 1px solid #444;
                 padding-bottom: 2px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .property-group-activate-btn {
+                padding: 2px 8px;
+                background: #555;
+                color: white;
+                border: none;
+                border-radius: 3px;
+                cursor: pointer;
+                font-size: 10px;
+                transition: all 0.2s ease;
+            }
+
+            .property-group-activate-btn:hover {
+                background: #666;
+            }
+
+            .property-group-activate-btn.active {
+                background: #4CAF50;
+            }
+
+            .property-group-activate-btn.active:hover {
+                background: #45a049;
             }
 
             .property-item {
@@ -361,6 +388,8 @@ class NodePropertyPanel {
                 border: 1px solid #444;
                 border-radius: 4px;
                 overflow: hidden;
+                align-items: center;
+                gap: 8px;
             }
 
             .component-header {
@@ -446,7 +475,7 @@ class NodePropertyPanel {
      */
     displayNodeProperties(nodeData: NodeData): void {
         this.currentNode = nodeData;
-        
+
         if (!nodeData) {
             this.displayEmptyState();
             return;
@@ -461,7 +490,6 @@ class NodePropertyPanel {
 
         // 基本信息
         let baseProperties = {
-            '激活': { value: nodeData.active, type: 'boolean', editable: true, key: 'active' },
             '名称': { value: nodeData.name, type: 'string', editable: true, key: 'name' },
             '坐标': { value: nodeData.position, type: 'vector3', editable: true, key: 'position' },
             '缩放': { value: nodeData.scale, type: 'vector3', editable: true, key: 'scale' },
@@ -469,14 +497,14 @@ class NodePropertyPanel {
             // '类型': { value: nodeData.type, type: 'readonly', editable: false },
             // 'UUID': { value: nodeData.uuid || 'N/A', type: 'readonly', editable: false },
         }
-        
+
         // if (nodeData.transform) {
         //     const transform = nodeData.transform;
         //     baseProperties['位置'] = { value: transform.position, type: 'vector3', editable: true, key: 'position' };
         //     // baseProperties['旋转'] = { value: transform.rotation, type: 'vector3', editable: true, key: 'rotation' };
         //     baseProperties['缩放'] = { value: transform.scale, type: 'vector3', editable: true, key: 'scale' };
         // }
-        
+
         // if (nodeData.size) {
         //     baseProperties['尺寸'] = { value: nodeData.size, type: 'vector2', editable: true, key: 'size' };
         // }
@@ -533,6 +561,28 @@ class NodePropertyPanel {
         const titleDiv = document.createElement('div');
         titleDiv.className = 'property-group-title';
         titleDiv.textContent = title;
+
+        // 创建激活按钮
+        const activateButton = document.createElement('button');
+        activateButton.className = 'property-group-activate-btn';
+        activateButton.textContent = '激活';
+        activateButton.title = '切换节点激活状态';
+
+
+        // 设置按钮初始状态
+        if (this.currentNode && this.currentNode.active !== undefined) {
+            activateButton.classList.toggle('active', this.currentNode.active);
+        }
+
+        // 绑定点击事件
+        activateButton.addEventListener('click', () => {
+            const isActive = activateButton.classList.toggle('active');
+            if (this.propertyChangeCallback) {
+                this.propertyChangeCallback('active', isActive);
+            }
+        });
+
+        titleDiv.insertBefore(activateButton, titleDiv.firstChild);
         groupDiv.appendChild(titleDiv);
 
         Object.entries(properties).forEach(([key, prop]) => {
@@ -554,6 +604,54 @@ class NodePropertyPanel {
         const headerDiv = document.createElement('div');
         headerDiv.className = 'component-header';
         headerDiv.textContent = `${component.name}`;
+        headerDiv.style.display = 'flex';
+        headerDiv.style.alignItems = 'center';
+
+        // 创建激活按钮
+        const activateButton = document.createElement('button');
+        activateButton.className = 'property-group-activate-btn';
+        activateButton.textContent = '激活';
+        activateButton.title = '切换组件激活状态';
+        activateButton.style.marginRight = '8px';
+
+        // 设置按钮初始状态
+        if (this.currentNode && this.currentNode.components) {
+            const componentData = this.currentNode.components.find(comp => comp.name === component.name);
+            if (componentData && componentData.enabled !== undefined) {
+                activateButton.classList.toggle('active', componentData.enabled);
+            }
+        }
+
+        // 绑定点击事件
+        activateButton.addEventListener('click', () => {
+            const isActive = activateButton.classList.toggle('active');
+            if (this.propertyChangeCallback) {
+                this.propertyChangeCallback('enabled', isActive, component.name);
+            }
+        });
+
+        headerDiv.insertBefore(activateButton, headerDiv.firstChild);
+
+        // 创建输出按钮
+        const outputButton = document.createElement('button');
+        outputButton.className = 'component-output-btn';
+        outputButton.textContent = '输出';
+        outputButton.title = '输出组件数据';
+        outputButton.style.marginLeft = 'auto';
+        outputButton.style.padding = '2px 8px';
+        outputButton.style.fontSize = '12px';
+        outputButton.style.cursor = 'pointer';
+        outputButton.style.backgroundColor = '#0078d4';
+        outputButton.style.color = '#fff';
+        outputButton.style.border = 'none';
+        outputButton.style.borderRadius = '4px';
+
+        // 绑定点击事件
+        outputButton.addEventListener('click', () => {
+            this.outputComponentDebugInfo(component.name);
+        });
+
+        headerDiv.appendChild(outputButton);
         sectionDiv.appendChild(headerDiv);
 
         const propertiesDiv = document.createElement('div');
@@ -561,7 +659,7 @@ class NodePropertyPanel {
 
         if (component.properties) {
             Object.entries(component.properties).forEach(([key, prop]) => {
-                const propertyDiv = this.createPropertyItem(key, prop);
+                const propertyDiv = this.createPropertyItem(key, prop, component.name);
                 propertiesDiv.appendChild(propertyDiv);
             });
         }
@@ -576,7 +674,7 @@ class NodePropertyPanel {
      * @param property - 属性配置
      * @returns 属性元素
      */
-    private createPropertyItem(label: string, property: PropertyInfo): HTMLElement {
+    private createPropertyItem(label: string, property: PropertyInfo, componentName?: string): HTMLElement {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'property-item';
 
@@ -598,7 +696,7 @@ class NodePropertyPanel {
                     input.type = property.type === 'number' ? 'number' : 'text';
                     input.value = property.value || '';
                     input.addEventListener('change', () => {
-                        this.handlePropertyChange(property.key!, input.value);
+                        this.handlePropertyChange(property.key!, input.value, componentName!);
                     });
                     valueDiv.appendChild(input);
                 } else {
@@ -616,7 +714,7 @@ class NodePropertyPanel {
                     checkbox.className = 'property-checkbox';
                     checkbox.checked = !!property.value;
                     checkbox.addEventListener('change', () => {
-                        this.handlePropertyChange(property.key!, checkbox.checked);
+                        this.handlePropertyChange(property.key!, checkbox.checked, componentName!);
                     });
                     checkboxDiv.appendChild(checkbox);
                     valueDiv.appendChild(checkboxDiv);
@@ -630,8 +728,8 @@ class NodePropertyPanel {
                 if (property.editable && property.value) {
                     const vectorDiv = document.createElement('div');
                     vectorDiv.className = 'property-vector';
-                    
-                    ['x', 'y'].forEach(axis => {
+
+                    ['x', 'y'].forEach((axis, index) => {
                         const input = document.createElement('input');
                         input.className = 'property-input';
                         input.type = 'number';
@@ -641,11 +739,11 @@ class NodePropertyPanel {
                         input.addEventListener('change', () => {
                             const newValue = { ...property.value };
                             newValue[axis] = parseFloat(input.value) || 0;
-                            this.handlePropertyChange(property.key!, newValue);
+                            this.handlePropertyChange(property.key!, newValue, componentName!);
                         });
                         vectorDiv.appendChild(input);
                     });
-                    
+
                     valueDiv.appendChild(vectorDiv);
                 } else {
                     valueDiv.className += ' property-readonly';
@@ -658,7 +756,7 @@ class NodePropertyPanel {
                 if (property.editable && property.value) {
                     const vectorDiv = document.createElement('div');
                     vectorDiv.className = 'property-vector';
-                    
+
                     ['x', 'y', 'z'].forEach(axis => {
                         const input = document.createElement('input');
                         input.className = 'property-input';
@@ -669,11 +767,11 @@ class NodePropertyPanel {
                         input.addEventListener('change', () => {
                             const newValue = { ...property.value };
                             newValue[axis] = parseFloat(input.value) || 0;
-                            this.handlePropertyChange(property.key!, newValue);
+                            this.handlePropertyChange(property.key!, newValue, componentName!);
                         });
                         vectorDiv.appendChild(input);
                     });
-                    
+
                     valueDiv.appendChild(vectorDiv);
                 } else {
                     valueDiv.className += ' property-readonly';
@@ -686,11 +784,11 @@ class NodePropertyPanel {
                 if (property.editable && property.value) {
                     const colorDiv = document.createElement('div');
                     colorDiv.className = 'property-color';
-                    
+
                     const preview = document.createElement('div');
                     preview.className = 'property-color-preview';
                     preview.style.backgroundColor = this.colorToHex(property.value);
-                    
+
                     const input = document.createElement('input');
                     input.className = 'property-input';
                     input.type = 'color';
@@ -698,9 +796,9 @@ class NodePropertyPanel {
                     input.addEventListener('change', () => {
                         const newColor = this.hexToColor(input.value);
                         preview.style.backgroundColor = input.value;
-                        this.handlePropertyChange(property.key!, newColor);
+                        this.handlePropertyChange(property.key!, newColor, componentName!);
                     });
-                    
+
                     colorDiv.appendChild(preview);
                     colorDiv.appendChild(input);
                     valueDiv.appendChild(colorDiv);
@@ -709,11 +807,37 @@ class NodePropertyPanel {
                     valueDiv.textContent = JSON.stringify(property.value);
                 }
                 break;
+            case 'size':
+                if (property.editable && property.value) {
+                    const vectorDiv = document.createElement('div');
+                    vectorDiv.className = 'property-vector';
 
+                    ['width', 'height'].forEach((axis, index) => {
+                        const input = document.createElement('input');
+                        input.className = 'property-input';
+                        input.type = 'number';
+                        input.step = '0.01';
+                        input.value = property.value[axis] || 0;
+                        input.placeholder = axis.toUpperCase();
+                        input.addEventListener('change', () => {
+                            const newValue = { ...property.value };
+                            newValue[axis] = parseFloat(input.value) || 0;
+                            this.handlePropertyChange(axis!, newValue, componentName!);
+                        });
+                        vectorDiv.appendChild(input);
+                    });
+
+                    valueDiv.appendChild(vectorDiv);
+                } else {
+                    valueDiv.className += ' property-readonly';
+                    const vec = property.value || { width: 0, height: 0 };
+                    valueDiv.textContent = `(${vec.width}, ${vec.height})`;
+                }
+                break;
             default:
                 valueDiv.className += ' property-readonly';
-                valueDiv.textContent = typeof property.value === 'object' 
-                    ? JSON.stringify(property.value) 
+                valueDiv.textContent = typeof property.value === 'object'
+                    ? JSON.stringify(property.value)
                     : (property.value || 'N/A');
         }
 
@@ -727,9 +851,9 @@ class NodePropertyPanel {
      * @param key - 属性键
      * @param value - 新值
      */
-    private handlePropertyChange(key: string, value: any): void {
+    private handlePropertyChange(key: string, value: any, propertyName?: string): void {
         if (this.propertyChangeCallback) {
-            this.propertyChangeCallback(key, value);
+            this.propertyChangeCallback(key, value, propertyName);
         }
     }
 
@@ -744,7 +868,7 @@ class NodePropertyPanel {
                     this.displayNodeProperties(updatedNode);
                 }
                 console.log("节点属性已刷新");
-                
+
                 if (this.showTooltipCallback && this.refreshButton) {
                     this.showTooltipCallback('属性已刷新', this.refreshButton);
                 }
@@ -769,13 +893,41 @@ class NodePropertyPanel {
         const nodeProperties = this.getNodeProperties(this.currentNode);
 
         console.log("=== 节点调试信息 ===");
+        this._index++
+        window[`temp${this._index}`] = this.currentNode;
         console.log("节点路径:", nodePath);
         console.log("节点属性:", nodeProperties);
+        console.log(`temp${this._index}`);
         console.log("原始节点对象:", this.currentNode);
         console.log("==================");
-
         if (this.debugButton && this.showTooltipCallback) {
             this.showTooltipCallback('节点信息已输出到控制台', this.debugButton);
+        }
+    }
+    /**
+     * 输出组件调试信息
+     */
+    private outputComponentDebugInfo(componentName?: string): void {
+        if (!this.currentNode) {
+            console.warn("没有选中的节点");
+            return;
+        }
+        let component = this.currentNode.ccNode.getComponent('cc.' + componentName!);
+        if (!component) {
+            component = this.currentNode.ccNode.getComponent(componentName!);
+            if (!component) {
+                console.warn(`节点${this.currentNode.name}上没有找到组件${componentName}`);
+                return;
+            }
+        }
+        console.log("=== 节点调试信息 ===");
+        this._index++
+        window[`temp${this._index}`] = component;
+        console.log(`temp${this._index}`);
+        console.log("原始组件对象:", component);
+        console.log("==================");
+        if (this.debugButton && this.showTooltipCallback) {
+            this.showTooltipCallback(`组件${componentName}信息已输出到控制台`, this.debugButton);
         }
     }
 
@@ -787,12 +939,12 @@ class NodePropertyPanel {
     private getNodePath(nodeData: NodeData): string {
         const path: string[] = [];
         let current: NodeData | undefined = nodeData;
-        
+
         while (current) {
             path.unshift(current.name || '未命名节点');
             current = current.parentNode; // 假设有父节点引用
         }
-        
+
         return path.join(' > ');
     }
 
@@ -828,7 +980,7 @@ class NodePropertyPanel {
         emptyDiv.className = 'property-empty';
         emptyDiv.textContent = '请选择一个节点';
         this.propertiesContainer!.appendChild(emptyDiv);
-        
+
         this.refreshButton!.style.display = 'none';
         this.debugButton!.disabled = true;
     }
@@ -837,11 +989,13 @@ class NodePropertyPanel {
      * 颜色转换辅助方法
      */
     private colorToHex(color: any): string {
-        if (typeof color === 'string') return color;
+        if (typeof color === 'string') {
+            return color && color.trim() !== '' ? color : '#ffffff';
+        }
         if (color && typeof color === 'object') {
-            const r = Math.round((color.r || 0) * 255);
-            const g = Math.round((color.g || 0) * 255);
-            const b = Math.round((color.b || 0) * 255);
+            const r = Math.round((color.r || 0));
+            const g = Math.round((color.g || 0));
+            const b = Math.round((color.b || 0));
             return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
         }
         return '#ffffff';
@@ -858,7 +1012,7 @@ class NodePropertyPanel {
      * 设置属性变化回调
      * @param callback - 回调函数
      */
-    onPropertyChange(callback: (key: string, value: any) => void): void {
+    onPropertyChange(callback: (key: string, value: any, propertyName?: string) => void): void {
         this.propertyChangeCallback = callback;
     }
 
@@ -889,7 +1043,7 @@ class NodePropertyPanel {
         // 确保清理全局事件监听器
         document.removeEventListener('mousemove', this.handleResizing);
         document.removeEventListener('mouseup', this.stopResizing);
-        
+
         if (this.container && this.container.parentNode) {
             this.container.parentNode.removeChild(this.container);
         }

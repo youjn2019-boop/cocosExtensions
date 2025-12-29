@@ -26,12 +26,12 @@ class NodeTreePanel {
     create(parent: HTMLElement): void {
         this.container = document.createElement('div');
         this.container.className = 'node-tree node-inspector-panel';
-        
+
         this.createHeader();
         this.createFilter();
         this.createTreeContainer();
         this.applyStyles();
-        
+
         parent.appendChild(this.container);
     }
 
@@ -41,39 +41,39 @@ class NodeTreePanel {
     private createHeader(): void {
         const header = document.createElement('div');
         header.className = 'node-tree-header';
-        
+
         const title = document.createElement('h3');
         title.textContent = '节点树';
         header.appendChild(title);
-        
+
         // 手动刷新按钮
         this.refreshButton = document.createElement('button');
         this.refreshButton.textContent = '刷新';
         this.refreshButton.className = 'refresh-button';
         this.refreshButton.style.display = 'none'; // 默认隐藏
-        
+
         // 自动刷新勾选框
         this.autoRefreshCheckbox = document.createElement('input');
         this.autoRefreshCheckbox.type = 'checkbox';
-        this.autoRefreshCheckbox.checked = true; // 默认勾选
+        this.autoRefreshCheckbox.checked = false; // 默认勾选
         this.autoRefreshCheckbox.className = 'auto-refresh-checkbox';
-        
+
         const checkboxLabel = document.createElement('label');
         checkboxLabel.textContent = '自动刷新';
         checkboxLabel.className = 'auto-refresh-label';
         checkboxLabel.appendChild(this.autoRefreshCheckbox);
-        
+
         // 绑定事件
         this.autoRefreshCheckbox.addEventListener('change', () => {
             this.toggleAutoRefresh();
         });
-        
+
         this.refreshButton.addEventListener('click', () => {
             if (this.manualRefreshCallback) {
                 this.manualRefreshCallback();
             }
         });
-        
+
         // 先添加刷新按钮，再添加勾选框
         header.appendChild(this.refreshButton);
         header.appendChild(checkboxLabel);
@@ -86,17 +86,17 @@ class NodeTreePanel {
     private createFilter(): void {
         const filterContainer = document.createElement('div');
         filterContainer.className = 'filter-container';
-        
+
         this.filterInput = document.createElement('input');
         this.filterInput.type = 'text';
         this.filterInput.placeholder = '过滤节点...';
         this.filterInput.className = 'filter-input';
-        
+
         this.filterInput.addEventListener('input', (e) => {
             this.filterText = (e.target as HTMLInputElement).value.toLowerCase();
             this.updateTreeDisplay();
         });
-        
+
         filterContainer.appendChild(this.filterInput);
         this.container!.appendChild(filterContainer);
     }
@@ -221,7 +221,7 @@ class NodeTreePanel {
             }
 
             .node-expand {
-                width: 12px;
+                width: 1px;
                 height: 12px;
                 display: flex;
                 align-items: center;
@@ -326,10 +326,10 @@ class NodeTreePanel {
 
         // 保存当前展开状态
         this.saveExpandedState();
-        
+
         // 过滤节点
         const filteredNodes = this.filterNodes(this.currentNodes);
-        
+
         // 生成树HTML
         this.treeContainer.innerHTML = '';
         filteredNodes.forEach(node => {
@@ -355,7 +355,7 @@ class NodeTreePanel {
         const filterNode = (node: NodeData): NodeData | null => {
             const matchesFilter = node.name.toLowerCase().includes(this.filterText);
             const filteredChildren = node.children ? node.children.map(filterNode).filter(Boolean) as NodeData[] : [];
-            
+
             if (matchesFilter || filteredChildren.length > 0) {
                 return {
                     ...node,
@@ -363,7 +363,7 @@ class NodeTreePanel {
                     expanded: filteredChildren.length > 0 // 自动展开有匹配子节点的节点
                 };
             }
-            
+
             return null;
         };
 
@@ -384,7 +384,11 @@ class NodeTreePanel {
         // 节点项
         const nodeItem = document.createElement('div');
         nodeItem.className = 'node-item';
-        nodeItem.style.paddingLeft = `${level * 16 + 5}px`;
+        // 根据节点激活状态设置样式
+        if (nodeData.active === false) {
+            nodeItem.style.opacity = '0.5';
+        }
+        nodeItem.style.paddingLeft = `${5}px`;
 
         // 展开/收起按钮
         const expandBtn = document.createElement('span');
@@ -471,14 +475,14 @@ class NodeTreePanel {
         if (this.autoRefreshCheckbox && this.refreshButton) {
             const isAutoRefresh = this.autoRefreshCheckbox.checked;
             this.refreshButton.style.display = isAutoRefresh ? 'none' : 'inline-block';
-            
+
             // 触发回调通知外部自动刷新状态变化
             if (this.autoRefreshCallback) {
                 this.autoRefreshCallback(isAutoRefresh);
             }
         }
     }
-    
+
     /**
      * 设置自动刷新回调
      * @param callback - 回调函数
@@ -486,7 +490,7 @@ class NodeTreePanel {
     onAutoRefreshChange(callback: (isAutoRefresh: boolean) => void): void {
         this.autoRefreshCallback = callback;
     }
-    
+
     /**
      * 设置手动刷新回调
      * @param callback - 回调函数
@@ -494,7 +498,7 @@ class NodeTreePanel {
     onManualRefresh(callback: () => void): void {
         this.manualRefreshCallback = callback;
     }
-    
+
     /**
      * 绑定节点事件
      */
@@ -506,7 +510,7 @@ class NodeTreePanel {
                 const nodeDiv = (expandBtn as HTMLElement).closest('.tree-node') as HTMLElement;
                 const childrenDiv = nodeDiv.querySelector('.node-children') as HTMLElement;
                 const nodeId = nodeDiv.getAttribute('data-node-id');
-                
+
                 if (childrenDiv && nodeId) {
                     const isExpanded = childrenDiv.classList.contains('expanded');
                     if (isExpanded) {
@@ -526,21 +530,21 @@ class NodeTreePanel {
         this.treeContainer!.querySelectorAll('.node-item').forEach(nodeItem => {
             nodeItem.addEventListener('click', (e) => {
                 e.stopPropagation();
-                
+
                 // 移除其他选中状态
                 this.treeContainer!.querySelectorAll('.node-item.selected').forEach(item => {
                     item.classList.remove('selected');
                 });
-                
+
                 // 设置当前选中
                 nodeItem.classList.add('selected');
-                
+
                 // 获取节点数据
                 const nodeDiv = (nodeItem as HTMLElement).closest('.tree-node') as HTMLElement;
                 const nodeId = nodeDiv.getAttribute('data-node-id');
                 if (!nodeId) return;
                 const nodeData = this.findNodeById(this.currentNodes, nodeId);
-                
+
                 if (nodeData && this.nodeSelectCallback) {
                     this.nodeSelectCallback(nodeData);
                 }
@@ -549,15 +553,15 @@ class NodeTreePanel {
             // 双击高亮事件
             nodeItem.addEventListener('dblclick', (e) => {
                 e.stopPropagation();
-                
+
                 const nodeDiv = (nodeItem as HTMLElement).closest('.tree-node') as HTMLElement;
                 const nodeId = nodeDiv.getAttribute('data-node-id');
                 if (!nodeId) return;
                 const nodeData = this.findNodeById(this.currentNodes, nodeId);
-                
+
                 if (nodeData && this.nodeHighlightCallback) {
                     this.nodeHighlightCallback(nodeData);
-                    
+
                     // 显示提示
                     if (this.showTooltipCallback) {
                         this.showTooltipCallback('节点已高亮显示', nodeItem as HTMLElement);
@@ -572,12 +576,12 @@ class NodeTreePanel {
      */
     private saveExpandedState(): void {
         if (!this.treeContainer) return;
-        
+
         // 从DOM中读取当前展开的节点ID
         this.treeContainer.querySelectorAll('.tree-node').forEach(nodeDiv => {
             const nodeId = nodeDiv.getAttribute('data-node-id');
             const childrenDiv = nodeDiv.querySelector('.node-children');
-            
+
             if (nodeId && childrenDiv && childrenDiv.classList.contains('expanded')) {
                 this.expandedNodeIds.add(nodeId);
             }
@@ -589,15 +593,15 @@ class NodeTreePanel {
      */
     private restoreExpandedState(): void {
         if (!this.treeContainer) return;
-        
+
         // 根据保存的ID恢复展开状态
         this.treeContainer.querySelectorAll('.tree-node').forEach(nodeDiv => {
             const nodeId = nodeDiv.getAttribute('data-node-id');
-            
+
             if (nodeId && this.expandedNodeIds.has(nodeId)) {
                 const childrenDiv = nodeDiv.querySelector('.node-children');
                 const expandBtn = nodeDiv.querySelector('.node-expand');
-                
+
                 if (childrenDiv && expandBtn) {
                     childrenDiv.classList.add('expanded');
                     expandBtn.classList.add('expanded');
@@ -647,6 +651,23 @@ class NodeTreePanel {
      */
     onShowTooltip(callback: (text: string, element: HTMLElement) => void): void {
         this.showTooltipCallback = callback;
+    }
+
+    /**
+     * 更新节点激活状态样式
+     * @param nodeId - 节点ID
+     * @param isActive - 是否激活
+     */
+    updateNodeActiveStyle(nodeId: string, isActive: boolean): void {
+        if (!this.treeContainer) return;
+
+        const nodeDiv = this.treeContainer.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement;
+        if (!nodeDiv) return;
+
+        const nodeItem = nodeDiv.querySelector('.node-item') as HTMLElement;
+        if (nodeItem) {
+            nodeItem.style.opacity = isActive ? '1' : '0.5';
+        }
     }
 
     /**

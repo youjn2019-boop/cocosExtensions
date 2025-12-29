@@ -102,7 +102,7 @@ interface ScreenRect {
 class NodeCalculator {
     private creatorVersion: string;
     private highlightElement: HTMLElement | null = null;
-    private highlightTimer: NodeJS.Timeout = null;
+    private highlightTimer: any = null;
 
     constructor() {
         this.creatorVersion = this.detectCreatorVersion();
@@ -352,9 +352,11 @@ class NodeCalculator {
     }
 
     private static _componentProperties = {
-        'UITransform': ['_contentSize', '_anchorPoint'],
+        'UITransform': ['contentSize', 'anchorPoint'],
         'Sprite': ['color'],
         'UIOpacity': ['opacity'],
+        'Label': ['string', 'color', 'fontSize', 'lineHeight'],
+        'RichText': ['string', 'fontSize', 'lineHeight'],
     }
     /**
      * 获取组件属性
@@ -439,13 +441,15 @@ class NodeCalculator {
         if (type === 'boolean') return 'boolean';
         if (type === 'number') return 'number';
         if (type === 'string') return 'string';
-
         if (type === 'object') {
-            if (value.x !== undefined && value.y !== undefined) {
-                return value.z !== undefined ? 'vector3' : 'vector2';
+            if (value.width !== undefined && value.height !== undefined) {
+                return 'size';
             }
             if (value.r !== undefined && value.g !== undefined && value.b !== undefined) {
                 return 'color';
+            }
+            if (value.x !== undefined && value.y !== undefined) {
+                return value.z !== undefined ? 'vector3' : 'vector2';
             }
         }
 
@@ -459,7 +463,7 @@ class NodeCalculator {
      * @returns 是否可编辑
      */
     private isEditableProperty(key: string, value: any): boolean {
-        const editableProps = new Set(['enabled', 'string', 'spriteFrame', 'color', 'vector2', 'vector3']);
+        const editableProps = new Set(['enabled', 'string', 'spriteFrame', 'color', 'vector2', 'vector3', "size", "fontSize", "lineHeight"]);
         const readonlyProps = new Set(['node', 'uuid', '_uuid', 'constructor']);
 
         if (readonlyProps.has(key)) return false;
@@ -471,19 +475,22 @@ class NodeCalculator {
 
     /**
      * 更新节点属性
-     * @param nodeData - 节点数据
+     * @param nodeData - 节点数据对象
      * @param key - 属性键
      * @param value - 新值
+     * @param propertyName - 属性名
      */
-    updateNodeProperty(nodeData: NodeData, key: string, value: any): void {
+    updateNodeProperty(nodeData: NodeData, key: string, value: any, propertyName?: string): void {
         if (!nodeData || !nodeData.ccNode) return;
 
         try {
             const ccNode = nodeData.ccNode;
-
             switch (key) {
                 case 'name':
                     ccNode.name = value;
+                    break;
+                case "angle":
+                    ccNode.angle = value;
                     break;
                 case 'active':
                     ccNode.active = value;
@@ -505,13 +512,23 @@ class NodeCalculator {
                     ccNode.zIndex = value;
                     break;
                 case 'opacity':
-                    ccNode.opacity = value;
+                    this.updateOpacity(ccNode, value);
                     break;
                 case 'color':
-                    this.updateColor(ccNode, value);
+                    this.updateColor(ccNode, value, propertyName);
                     break;
-                case 'size':
-                    this.updateSize(ccNode, key, value);
+                case 'enabled':
+                    this.updateComponentEnabled(ccNode, value, propertyName);
+                    break;
+                case 'anchorPoint':
+                    this.updateAnchorPoint(ccNode, value);
+                    break;
+                case 'string':
+                    this.updateString(ccNode, value, propertyName);
+                    break;
+                case 'fontSize':
+                case 'lineHeight':
+                    this.updateLabel(ccNode, key, value, propertyName);
                     break;
                 default:
                     Logger.warn('未知的属性键:', key);
@@ -590,25 +607,110 @@ class NodeCalculator {
         if (this.isCreator3x()) {
             const uiTransform = ccNode.getComponent('cc.UITransform');
             if (uiTransform) {
-                uiTransform[key] = value;
+                uiTransform[key] = value[key];
+            }
+        } else {
+            ccNode[key] = value;
+        }
+    }
+    /**
+     * 更新锚点
+     * @param ccNode - CC节点
+     * @param anchorPoint - 锚点对象
+     */
+    private updateAnchorPoint(ccNode: any, anchorPoint: Vector2): void {
+        if (this.isCreator3x()) {
+            const uiTransform = ccNode.getComponent('cc.UITransform');
+            if (uiTransform) {
+                uiTransform.anchorPoint = anchorPoint;
+            }
+        } else {
+            ccNode.anchorPoint = anchorPoint;
+        }
+    }
+    /**
+     * 更新文本内容
+     * @param ccNode - CC节点
+     * @param value - 新文本内容
+     * @param propertyName - 属性名（Label/RichText）
+     */
+    private updateString(ccNode: any, value: string, propertyName: string): void {
+        if (this.isCreator3x()) {
+            const roperty = ccNode.getComponent('cc.' + propertyName);
+            if (roperty) {
+                roperty.string = value;
+            }
+        } else {
+            ccNode[propertyName] = value;
+        }
+    }
+    /**
+     * 更新字体大小行高
+     * @param ccNode - CC节点
+     * @param key - 尺寸键（fontSize/lineHeight）
+     * @param value - 新值
+     * @param propertyName - 属性名（Label/RichText）
+     */
+    private updateLabel(ccNode: any, key: string, value: number, propertyName: string): void {
+        if (this.isCreator3x()) {
+            const label = ccNode.getComponent('cc.' + propertyName);
+            if (label) {
+                label[key] = value;
             }
         } else {
             ccNode[key] = value;
         }
     }
 
+
     /**
-     * 更新颜色
+     * 更新透明度
+     * @param ccNode - CC节点
+     * @param opacity - 透明度值（0-255）
+     */
+    private updateOpacity(ccNode: any, opacity: number): void {
+        if (this.isCreator3x()) {
+            const uiOpacity = ccNode.getComponent('cc.UIOpacity');
+            if (uiOpacity) {
+                uiOpacity.opacity = opacity;
+            }
+        } else {
+            ccNode.opacity = opacity;
+        }
+    }
+
+    /**
+     * 更新图片字体颜色
      * @param ccNode - CC节点
      * @param color - 颜色对象
+     * @param propertyName - 属性名（Sprite/Label/RichText）
      */
-    private updateColor(ccNode: any, color: Color): void {
-        if (ccNode.color) {
-            const cc = (window as any).cc;
-            if (this.isCreator3x()) {
-                ccNode.color = new cc.Color(color.r * 255, color.g * 255, color.b * 255, color.a * 255);
+    private updateColor(ccNode: any, color: Color, propertyName: string): void {
+        const cc = (window as any).cc;
+        if (this.isCreator3x()) {
+            const Sprite = ccNode.getComponent('cc.' + propertyName);
+            if (Sprite) {
+                Sprite.color = new cc.Color(color.r * 255, color.g * 255, color.b * 255, color.a * 255);
+            }
+        } else {
+            ccNode.color = new cc.Color(color.r, color.g, color.b, color.a);
+        }
+    }
+    /**
+     * 更新组件启用状态
+     * @param ccNode - CC节点
+     * @param enabled - 是否启用
+     */
+    private updateComponentEnabled(ccNode: any, enabled: boolean, propertyName: string): void {
+        if (this.isCreator3x()) {
+            let component = ccNode.getComponent('cc.' + propertyName);
+            if (component) {
+                component.enabled = enabled;
             } else {
-                ccNode.color = new cc.Color(color.r, color.g, color.b, color.a);
+                component = ccNode.getComponent(propertyName);
+                if (component) {
+                    component.enabled = enabled;
+                }
             }
         }
     }

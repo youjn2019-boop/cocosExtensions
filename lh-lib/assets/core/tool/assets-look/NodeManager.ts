@@ -27,23 +27,23 @@ class NodeManager {
      */
     initialize(container: HTMLElement | null, showTooltipCallback: ((text: string, element: HTMLElement) => void) | null): void {
         if (!container) return;
-        
+
         this.showTooltipCallback = showTooltipCallback;
-        
+
         // 创建节点树面板
         this.nodeTreePanel = new NodeTreePanel();
         this.nodeTreePanel.create(container);
-        
+
         // 创建属性面板
         this.propertyPanel = new NodePropertyPanel();
         this.propertyPanel.create(container);
-        
+
         // 绑定事件
         this.bindEvents();
-        
+
         // 默认开始节点监控（因为勾选框默认是勾选的）
         this.startNodeMonitoring();
-        
+
         Logger.log('节点管理器已初始化');
     }
 
@@ -64,9 +64,9 @@ class NodeManager {
         });
 
         // 属性变化事件
-        this.propertyPanel.onPropertyChange((key: string, value: any) => {
+        this.propertyPanel.onPropertyChange((key: string, value: any, propertyName?: string) => {
             if (this.selectedNode) {
-                this.updateNodeProperty(this.selectedNode, key, value);
+                this.updateNodeProperty(this.selectedNode, key, value, propertyName);
             }
         });
 
@@ -155,11 +155,11 @@ class NodeManager {
      */
     private getAllRootNodes(): NodeData[] {
         const rootNodes: NodeData[] = [];
-        
+
         try {
             const cc = (window as any).cc;
             const director = cc?.director;
-            
+
             if (director) {
                 const scene = director.getScene();
                 if (scene && scene.children && scene.children.length > 0) {
@@ -192,11 +192,19 @@ class NodeManager {
      * @param nodeData - 节点数据
      * @param key - 属性键
      * @param value - 新值
+     * @param propertyName - 属性名
      */
-    private updateNodeProperty(nodeData: NodeData, key: string, value: any): void {
+    private updateNodeProperty(nodeData: NodeData, key: string, value: any, propertyName?: string): void {
         if (nodeData.ccNode) {
             try {
-                this.calculator.updateNodeProperty(nodeData, key, value);
+                this.calculator.updateNodeProperty(nodeData, key, value, propertyName);
+
+                // 如果是active属性变化，更新节点树中的样式
+                if (key === 'active') {
+                    if (this.nodeTreePanel) {
+                        this.nodeTreePanel.updateNodeActiveStyle(nodeData.id, value);
+                    }
+                }
             } catch (error) {
                 console.error('更新节点属性失败:', error);
             }
@@ -209,7 +217,7 @@ class NodeManager {
      */
     private highlightNodeInScene(nodeData: NodeData): void {
         const ccNode = nodeData.ccNode;
-        
+
         if (ccNode) {
             if (typeof document !== 'undefined') {
                 try {
@@ -237,17 +245,17 @@ class NodeManager {
      */
     destroy(): void {
         this.stopNodeMonitoring();
-        
+
         if (this.nodeTreePanel) {
             this.nodeTreePanel.destroy();
             this.nodeTreePanel = null;
         }
-        
+
         if (this.propertyPanel) {
             this.propertyPanel.destroy();
             this.propertyPanel = null;
         }
-        
+
         this.selectedNode = null;
     }
 }
